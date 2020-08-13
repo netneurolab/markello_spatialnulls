@@ -13,7 +13,7 @@ dependencies:
     - nilearn
     - numba
     - "numpy>=1.16"
-    - pandas
+    - "pandas<0.25"
     - pip
     - requests
     - scikit-learn
