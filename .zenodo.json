@@ -1,0 +1,24 @@
+{
+  "creators": [
+    {
+      "name": "Markello, Ross D.",
+      "affiliation": "McConnell Brain Imaging Centre, Montréal Neurological Institute, McGill University, Montréal, Quebec, Canada",
+      "orcid": "0000-0003-1057-1336"
+    },
+    {
+      "name": "Mišić, Bratislav",
+      "affiliation": "McConnell Brain Imaging Centre, Montréal Neurological Institute, McGill University, Montréal, Quebec, Canada",
+      "orcid": "0000-0003-0307-2862"
+    }
+  ],
+  "description": "Repository containing analysis scripts in support of Markello et al., biorxiv, 2020.",
+  "keywords": [
+    "null models",
+    "brain parcellations",
+    "spatial autocorrelation",
+    "significance testing"
+  ],
+  "license": "BSD-3-Clause",
+  "upload_type": "software",
+  "access_right": "open"
+}

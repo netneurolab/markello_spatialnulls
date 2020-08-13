@@ -1,0 +1,28 @@
+name: markello_spatialnulls
+channels:
+    - defaults
+    - conda-forge
+dependencies:
+    - python=3.7
+    - flake8
+    - h5py
+    - jupyterlab
+    - matplotlib
+    - mayavi
+    - nibabel
+    - nilearn
+    - numba
+    - "numpy>=1.16"
+    - pandas
+    - pip
+    - requests
+    - scikit-learn
+    - scipy
+    - tqdm
+    - vtk
+    - pip:
+        - "brainsmash>=0.0.8"
+        - brainspace
+        - "netneurotools>=0.2.2"
+        - neurosynth
+        - pysurfer

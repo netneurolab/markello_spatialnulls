@@ -1,0 +1,10 @@
+data/
+.ipynb_checkpoints/
+.vscode/
+figures/
+*egg-info/
+__pycache__/
+_build/
+container/license.txt
+container/*simg
+.DS_Store

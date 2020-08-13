@@ -1,0 +1,3 @@
+  	[build]
+	  publish = "walkthrough/_build/html"
+	  command = "cd walkthrough && pip install -r requirements.txt && make html"
