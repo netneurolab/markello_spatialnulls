@@ -146,6 +146,9 @@ def run_meta_analyses(database, features, use_features=None, outdir=None):
             outname = path / f'{hemi}.association-test_z.mgh'
             run(VOL2SURF.format(fname, outname, hemi), quiet=True)
 
+        # store MA path
+        generated.append(path)
+
     print(' ' * len(msg) + '\b' * len(msg), end='', flush=True)
 
     return generated
