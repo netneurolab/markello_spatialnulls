@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from pathlib import Path
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -14,10 +15,12 @@ from parspin import burt
 from parspin.utils import save_brainmap
 
 FIGSIZE = 500
-SPINDIR = Path('./data/derivatives/spins/examples').resolve()
+SPINDIR = Path('./data/derivatives/spins').resolve()
 DISTDIR = Path('./data/derivatives/geodesic').resolve()
 ROIDIR = Path('./data/raw/rois').resolve()
-FIGDIR = Path('./figures/spins').resolve()
+FIGDIR = Path('./figures/spins/examples').resolve()
+
+warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
 
 
 if __name__ == "__main__":
@@ -41,12 +44,12 @@ if __name__ == "__main__":
     data = np.zeros((len(coords)))
     order = np.zeros(len(coords), dtype=int)
     inds = np.arange(len(coords), dtype=int)
-    for l in np.asarray(info.groupby('hemisphere').count()['id']):
-        end += l
+    for i in np.asarray(info.groupby('hemisphere').count()['id']):
+        end += i
         c = coords[start:end]
         order[start:end] = inds[c[:, 1].argsort()[::-1] + start]
-        data[start:end] = np.arange(l)
-        start = l
+        data[start:end] = np.arange(i)
+        start = i
     np.put(data, order, data)
     vmax = len(data) - n_right
 
@@ -74,8 +77,10 @@ if __name__ == "__main__":
 
     # burt 2018
     lhdata, rhdata = data[:end - start], data[end - start:]
-    lhdist = np.loadtxt(DISTDIR / name / f'{scale}_lh_dist.csv', delimiter=',')
-    rhdist = np.loadtxt(DISTDIR / name / f'{scale}_rh_dist.csv', delimiter=',')
+    lhdist = np.loadtxt(DISTDIR / name / 'nomedial' / f'{scale}_lh_dist.csv',
+                        delimiter=',')
+    rhdist = np.loadtxt(DISTDIR / name / 'nomedial' / f'{scale}_rh_dist.csv',
+                        delimiter=',')
     plot = np.hstack((
         burt.make_surrogate(lhdist, lhdata + 1, seed=1234),
         burt.make_surrogate(rhdist, rhdata + 1, seed=1234)
