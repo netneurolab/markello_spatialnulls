@@ -5,6 +5,7 @@ Helper code for generating surrogate resampling matrices for Burt 2018 and Burt
 """
 
 from pathlib import Path
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,8 @@ import pandas as pd
 from parspin import burt, utils as putils
 
 from brainsmash import mapgen
+
+warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
 
 
 def load_data(data_dir, atlas, scale):
