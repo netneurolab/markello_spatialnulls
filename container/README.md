@@ -16,3 +16,4 @@ singularity shell --cleanenv                    \
                   markello_spatialnulls.simg
 make all
 ```
+/

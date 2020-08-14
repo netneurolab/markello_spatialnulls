@@ -28,7 +28,7 @@ if [ ! -f container/${tag}.simg ]; then
     --base ubuntu:18.04                                                       \
     --pkg-manager apt                                                         \
     --install                                                                 \
-      git less nano connectome-workbench                                      \
+      git less nano make connectome-workbench                                 \
     --freesurfer                                                              \
       version=6.0.0-min                                                       \
       license_path=container/license.txt                                      \
