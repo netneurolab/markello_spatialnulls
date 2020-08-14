@@ -185,6 +185,3 @@ if __name__ == "__main__":
         # scale across atlases)
         fname = figdir / 'spatial_nulls_dist.svg'
         make_distplot(METHODS, parcellation, fname)
-
-        fname = figdir / 'naive_nulls_dist.svg'
-        make_distplot(NAIVE, parcellation, fname)

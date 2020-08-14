@@ -164,5 +164,5 @@ if __name__ == "__main__":
     ax.set(yticks=[], xlim=(0.4, 1.1), xticks=(0.5, 0.75, 1.0))
     (x, y), = np.where(np.isin(data.columns, terms))
     ax.vlines(corr_orig[x, y], *ax.get_ylim(), linestyle='dashed')
-    ax.figure.savefig(FIGDIR / f'nulldist.svg', bbox_inches='tight',
+    ax.figure.savefig(FIGDIR / 'nulldist.svg', bbox_inches='tight',
                       transparent=True)

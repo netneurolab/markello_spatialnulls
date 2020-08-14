@@ -20,7 +20,7 @@ plt.rcParams['font.sans-serif'] = ['Verdana']
 plt.rcParams['font.size'] = 28.0
 
 SEED = 1234
-N_SURROGATES = 10000
+N_SURROGATES = 1000
 ROIDIR = Path('./data/raw/rois').resolve()
 HCPDIR = Path('./data/derivatives/hcp').resolve()
 DISTDIR = Path('./data/derivatives/geodesic')
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
             # load T1w/T2w for given parcellation + resolution
             data = pd.read_csv(HCPDIR / name / f'{scale}.csv', index_col=0)
-            data = data.drop([l for l in data.index if l in putils.DROP])
+            data = data.drop([i for i in data.index if i in putils.DROP])
             data = data['myelin']
 
             # generate surrogates for each method using distance matrix w/ and

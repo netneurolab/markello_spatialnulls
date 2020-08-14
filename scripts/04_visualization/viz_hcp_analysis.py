@@ -92,5 +92,5 @@ if __name__ == "__main__":
                          ax=ax, color=np.array([112, 146, 255]) / 255,
                          zorder=10, s=75,)
     ax.set(xlabel='T1w/T2w', xticks=[1.0, 1.6], xlim=[1.0, 1.6])
-    ax.figure.savefig(FIGDIR / f'null_distribution.svg', bbox_inches='tight',
+    ax.figure.savefig(FIGDIR / 'null_distribution.svg', bbox_inches='tight',
                       transparent=True)
