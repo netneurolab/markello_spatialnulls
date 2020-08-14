@@ -7,7 +7,7 @@ Generated matrices are saved in `data/derivatives/geodesic`.
 
 from pathlib import Path
 
-from netneurotools import datasets as nndata
+from netneurotools import datasets as nndata, freesurfer as nnsurf
 from parspin import surface, utils as putils
 
 ROIDIR = Path('./data/raw/rois').resolve()
@@ -18,7 +18,8 @@ SURFACE = 'pial'  # surface on which to calculate distance
 if __name__ == '__main__':
     parcellations = putils.get_cammoun_schaefer(data_dir=ROIDIR)
     surf = nndata.fetch_fsaverage('fsaverage5', data_dir=ROIDIR)[SURFACE]
-    medial = ROIDIR / 'tpl-fsaverage' / 'fsaverage5' / 'label'
+    subj, spath = nnsurf.check_fs_subjid('fsaverage5')
+    medial = Path(spath) / subj / 'label'
     medial_labels = [
         'unknown', 'corpuscallosum', '???',
         'Background+FreeSurfer_Defined_Medial_Wall'
