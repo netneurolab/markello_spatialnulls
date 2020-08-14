@@ -305,7 +305,7 @@ def run_null(netclass, parc, scale, spintype):
     elif spintype == 'moran':
         surrogates = np.zeros((len(data['myelin']), 10000))
         for hemi, dist, idx in putils.yield_data_dist(DISTDIR, parc,
-                                                      scale, data):
+                                                      scale, data['myelin']):
             mrs = moran.MoranRandomization(joint=True, n_rep=10000,
                                            tol=1e-6, random_state=1234)
             mrs.fit(dist)
