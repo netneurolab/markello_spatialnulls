@@ -18,6 +18,8 @@ dependencies:
     - requests
     - scikit-learn
     - scipy
+    - seaborn
+    - statsmodels
     - tqdm
     - vtk
     - pip:

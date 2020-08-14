@@ -37,8 +37,9 @@ if [ ! -f container/${tag}.simg ]; then
     --miniconda                                                               \
       create_env=${tag}                                                       \
       yaml_file=/opt/environment.yml                                          \
+    --copy ./parspin /opt/parspin                                             \
+    --run "bash -c 'source activate ${tag} && pip install /opt/parspin'"      \
     --add-to-entrypoint "source activate ${tag}"                              \
-    --add-to-entrypoint "pip install -e parspin"                              \
   > container/Singularity
   sudo singularity build container/${tag}.simg container/Singularity
 fi
