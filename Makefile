@@ -23,7 +23,7 @@ preprocess:
 analysis:
 	@echo "Running data analyses\n"
 	$(PYTHON) scripts/02_analysis/get_geodesic_distance.py
-	$(PYTHON) scripts/02_analysis/generated_spin_resamples.py
+	$(PYTHON) scripts/02_analysis/generate_spin_resamples.py
 	$(PYTHON) scripts/02_analysis/generate_neurosynth_surrogates.py
 	$(PYTHON) scripts/02_analysis/generate_hcp_surrogates.py
 
