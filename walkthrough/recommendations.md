@@ -21,6 +21,6 @@ No method is going to be perfect in all cases, but the theoretical underpinnings
 Critically, it can be applied to both surface + volumetric data alike—which will be increasingly important as the field of neuroimaging at-large continues to come to terms with the fact that the subcortex and cerebellum actually do things (surprise!).
 
 The one main drawback of the Burt-2020 is its speed—it's got a bit of a computational cost, especially if you're working with multivariate data (think NeuroSynth or the Allen Human Brain Atlas) since you need to generate surrogates for each brain map independently.
-That said, with computing power because more and more cost-effective, this concern really shouldn't factor in to most neuroimaging workflows (especially since running e.g., fMRIPrep on a single subject nowadays can take upwards of 10 hours!).
+That said, with computing power becoming more and more cost-effective, this concern really shouldn't factor in to most neuroimaging workflows (especially since running e.g., fMRIPrep on a single subject nowadays can take upwards of 10 hours!).
 
 If you're interested in using this method in your own research head on over to [BrainSMASH](https://brainsmash.readthedocs.io/) to get started.
