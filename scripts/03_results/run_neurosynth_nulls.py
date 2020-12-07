@@ -137,6 +137,8 @@ def get_fwe(real, perm, alpha=ALPHA):
         Non-parametric p-values for `real`
     """
 
+    real, perm = np.asarray(real), np.asarray(perm)
+
     if perm.ndim == 1:
         perm = perm.reshape(-1, 1)
 
