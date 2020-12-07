@@ -167,9 +167,14 @@ def parcellate(mgh, annot):
         Parcellated data from `mgh`
     """
 
-    img = nib.load(mgh)
+    try:
+        img = nib.load(mgh).dataobj
+    except ValueError:
+        img = mgh
+
     labels, ctab, names = nib.freesurfer.read_annot(annot)
-    return ndimage.mean(np.squeeze(img.dataobj), labels, np.unique(labels))
+
+    return ndimage.mean(np.squeeze(img), labels, np.unique(labels))
 
 
 def get_names(*, lh, rh):
@@ -300,3 +305,30 @@ def save_brainmap(data, lh, rh, fname, **kwargs):
     fname.parent.mkdir(parents=True, exist_ok=True)
     fig.save_image(fname)
     fig.close()
+
+
+def drop_unknown(data, drop=DROP):
+    """
+    Removes rows from `data` corresponding to entries in `drop`
+
+    If there is no overlap between `data.index` and `drop` then nothing is done
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Data from which `drop` should be removed
+    drop : array_like
+        Indices or index names of rows that should be removed from `data`. If
+        not supplied then `parspin.utils.DROP` is used. Default: None
+
+    Returns
+    -------
+    data : pandas.DataFrame
+        Provided dataframe with `drop` rows removed
+    """
+
+    todrop = np.array(drop)[np.isin(drop, data.index)]
+    if len(todrop) > 0:
+        data = data.drop(todrop, axis=0)
+
+    return data

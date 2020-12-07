@@ -422,26 +422,25 @@ def matching_multinorm_grfs(corr, tol=0.005, *, alpha=3.0, normalize=True,
 
     rs = np.random.default_rng(seed)
 
-    # just generate two totally random vectors correlated to specified degree
-    if alpha == 0:
-        x, y = make_correlated_xy(corr, size=20484, seed=rs.integers(MSEED))
-        return x, y
-
     acorr, n = np.inf, 0
     while np.abs(np.abs(acorr) - corr) > tol:
-        x, y = make_correlated_xy(corr, size=902629, seed=rs.integers(MSEED))
+        if alpha > 0:
+            x, y = make_correlated_xy(corr, size=902629,
+                                      seed=rs.integers(MSEED))
+            # smooth correlated noise vectors + project to surface
+            xs = create_surface_grf(noise=x, alpha=alpha, normalize=normalize)
+            ys = create_surface_grf(noise=y, alpha=alpha, normalize=normalize)
+        else:
+            xs, ys = make_correlated_xy(corr, size=20484,
+                                        seed=rs.integers(MSEED))
 
-        # smooth correlated noise vectors + project to surface
-        xs = create_surface_grf(noise=x, alpha=alpha, normalize=normalize)
-        ys = create_surface_grf(noise=y, alpha=alpha, normalize=normalize)
-
-        # remove medial wall to ensure data are still sufficiently correlated
-        # this is important for parcellation
+        # remove medial wall to ensure data are still sufficiently correlated.
+        # this is important for parcellations that will ignore the medial wall
         xs, ys = _mod_medial(xs, remove=True), _mod_medial(ys, remove=True)
         acorr = np.corrcoef(xs, ys)[0, 1]
 
         if debug:
-            # dear lord i hope it doesn't take more than 999 tries...
+            # n:>3 because dear lord i hope it doesn't take more than 999 tries
             print(f'{n:>3}: {acorr:>6.3f}')
             n += 1
 
@@ -452,8 +451,3 @@ def matching_multinorm_grfs(corr, tol=0.005, *, alpha=3.0, normalize=True,
         xs, ys = sstats.zscore(xs), sstats.zscore(ys)
 
     return _mod_medial(xs, remove=False), _mod_medial(ys, remove=False)
-
-
-# TODO: write function to generate mgz files with lh/rh of correlated vectors
-# and save to disk. need to figure out how to format these outputs so x/y are
-# paired somehow (filename? directory?)
