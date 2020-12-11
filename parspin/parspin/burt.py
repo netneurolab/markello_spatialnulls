@@ -3,6 +3,7 @@
 Implementation of surrogate map generation as in Burt et al., 2018, Nat Neuro
 """
 
+from joblib import Parallel, delayed
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.stats import boxcox
@@ -142,3 +143,38 @@ def make_surrogate(x, y, rho=None, d0=None, seed=None, return_order=False,
         out += ((rho, d0),)
 
     return out[0] if len(out) == 1 else out
+
+
+def batch_surrogates(x, y, n_surr=1000, n_jobs=1, seed=None):
+    """
+    Generates `n_surr` surrogates maps of `y` using Burt-2018 method
+
+    Parameters
+    ----------
+    x : (N, N) array_like
+        Distance matrix
+    y : (N,) array_like
+        Dependent brain-imaging variable; all values must be positive
+    n_surr : int, optional
+        Number of surrogates maps to generate. Default: 1000
+    n_jobs : int, optional
+        Number of processes to use while generating surrogate maps. Default: 1
+    seed : {int, None}, optional
+        Random seed for generating surrogates. Default: None
+
+    Returns
+    -------
+    surrs : (N, `n_surr`)
+        Generated surrogate maps
+    """
+
+    rs = np.random.default_rng(seed)
+    seeds = rs.integers(np.iinfo(np.int32).max, size=n_surr)
+    rho, d0 = estimate_rho_d0(x, y)
+
+    surrs = np.column_stack(
+        Parallel(n_jobs=n_jobs)(delayed(make_surrogate)(
+            x, y, rho=rho, d0=d0, seed=seed) for seed in seeds)
+    )
+
+    return surrs
