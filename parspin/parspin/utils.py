@@ -132,7 +132,7 @@ def get_cammoun_schaefer(vers='fsaverage5', data_dir=None, networks='7'):
     return {'atl-cammoun2012': cammoun, 'atl-schaefer2018': schaefer}
 
 
-def save_dir(fname, data):
+def save_dir(fname, data, overwrite=True):
     """
     Saves `data` to `fname`, creating any necessary intermediate directories
 
@@ -147,6 +147,8 @@ def save_dir(fname, data):
     fname = Path(fname).resolve()
     fname.parent.mkdir(parents=True, exist_ok=True)
     fmt = '%.10f' if data.dtype.kind == 'f' else '%d'
+    if fname.exists() and not overwrite:
+        return
     np.savetxt(fname, data, delimiter=',', fmt=fmt)
 
 
