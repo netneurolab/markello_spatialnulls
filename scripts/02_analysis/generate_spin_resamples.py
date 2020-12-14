@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
             fname = SPINDIR / name / 'vazquez-rodriguez' / spin_fn
             if not fname.exists():
-                print(f'Generating inexact spins for {scale}')
+                print(f'Generating V-R spins for {scale}')
                 spins = nnstats.gen_spinsamples(coords, hemi, exact=False,
                                                 n_rotate=10000, verbose=True,
                                                 check_duplicates=False,
@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
             fname = SPINDIR / name / 'vasa' / spin_fn
             if not fname.exists():
-                print(f'Generating exact spins (Vasa) for {scale}')
+                print(f'Generating Vasa spins for {scale}')
                 spins = nnstats.gen_spinsamples(coords, hemi, exact='vasa',
                                                 n_rotate=10000, verbose=True,
                                                 check_duplicates=False,
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
             fname = SPINDIR / name / 'hungarian' / spin_fn
             if not fname.exists():
-                print(f'Generating exact spins (Hungarian) for {scale}')
+                print(f'Generating Hungarian spins for {scale}')
                 spins = nnstats.gen_spinsamples(coords, hemi, exact=True,
                                                 n_rotate=10000, verbose=True,
                                                 check_duplicates=False,
@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
             fname = SPINDIR / name / 'baum' / spin_fn
             if not fname.exists():
-                print(f'Generating maximum overlap spins for {scale}')
+                print(f'Generating Baum spins for {scale}')
                 spins = nnsurf.spin_parcels(lhannot=annot.lh, rhannot=annot.rh,
                                             version='fsaverage5', seed=1234,
                                             n_rotate=10000, verbose=True,
@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
             fname = SPINDIR / name / 'naive-nonpara' / spin_fn
             if not fname.exists():
-                print(f'Generating naive permutation for {scale}')
+                print(f'Generating naive permutations for {scale}')
                 rs = np.random.default_rng(1234)
                 spins = np.column_stack([
                     rs.permutation(len(coords)) for f in range(10000)

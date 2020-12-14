@@ -41,7 +41,7 @@ def burt2018_surrogates(name, scale):
     dlh, drh = surrogates.load_dist(DISTDIR, name, scale)
 
     # generate surrogates and save to disk
-    surrogates.burt2020_surrogates(lh, rh, dlh, drh, fname=fn, n_perm=N_PERM)
+    surrogates.burt2018_surrogates(lh, rh, dlh, drh, fname=fn, n_perm=N_PERM)
 
 
 def burt2020_surrogates(name, scale):
