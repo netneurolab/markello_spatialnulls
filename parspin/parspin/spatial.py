@@ -330,7 +330,7 @@ def make_surf_plot(data, surf='inflated', version='fsaverage5', **kwargs):
     opts.update(kwargs)
     for key in ['hemi', 'view', 'axes']:
         if key in opts:
-            opts.pop(key)
+            del opts[key]
 
     data = np.split(data, 2)
     fs = fetch_fsaverage(version)[surf]

@@ -263,7 +263,7 @@ def yield_data_dist(dist_dir, atlas, scale, data, medial=False, inverse=True):
 
     medial = ['nomedial', 'medial'][medial]
 
-    for hemi in ('lh', 'rh'):
+    for n, hemi in enumerate(('lh', 'rh')):
         # load relevant distance matrix
         fn = pathify(dist_dir) / atlas / medial / f'{scale}_{hemi}_dist.csv'
         dist = np.loadtxt(fn, delimiter=',')
@@ -273,8 +273,14 @@ def yield_data_dist(dist_dir, atlas, scale, data, medial=False, inverse=True):
             dist **= -1
 
         # get indices of data that correspond to relevant `hemi` and subset
-        idx = [n for n, f in enumerate(data.index)if f.startswith(hemi)]
-        hemidata = np.squeeze(np.asarray(data.iloc[idx]))
+        # if data is not a pandas DataFrame with hemisphere information assume
+        # we can split the data equally in 2
+        try:
+            idx = [n for n, f in enumerate(data.index)if f.startswith(hemi)]
+            hemidata = np.squeeze(np.asarray(data.iloc[idx]))
+        except AttributeError:
+            idx = np.arange(n * (len(data) // 2), (n + 1) * (len(data) // 2))
+            hemidata = np.squeeze(data[idx])
 
         yield hemidata, dist, idx
 

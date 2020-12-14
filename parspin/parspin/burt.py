@@ -126,7 +126,7 @@ def make_surrogate(x, y, rho=None, d0=None, seed=None, return_order=False,
     w = _make_weight_matrix(x, d0)
     u = rs.standard_normal(len(x))
     i = np.identity(len(x))
-    surr = np.linalg.inv(i - rho * w) @ u
+    surr = np.linalg.solve(i - rho * w, u)
 
     # "to match surrogate map value distributions to the distributon of values"
     # "in the corresponding empirical map, rank-ordered surrogate map values"
