@@ -19,14 +19,24 @@ if __name__ == '__main__':
     # get cammoun + schaefer parcellations
     parcellations = putils.get_cammoun_schaefer(data_dir=ROIDIR)
 
-    # pre-generate the vertex-level spins
-    fname = SPINDIR / 'vertex' / 'spins.csv'
+    # generate the vertex-level spins
+    coords, hemi = nnsurf._get_fsaverage_coords('fsaverage5', 'sphere')
+
+    fname = SPINDIR / 'vertex' / 'vazquez-rodriguez' / 'fsaverage5_spins.csv'
     if not fname.exists():
-        print('Generating vertex-level spins for fsaverage5 surface')
-        coords, hemi = nnsurf._get_fsaverage_coords('fsaverage5', 'sphere')
+        print('Generating V-R spins for fsaverage5 surface')
         spins = nnsurf.gen_spinsamples(coords, hemi, exact=False,
                                        n_rotate=10000, verbose=True,
                                        seed=1234, check_duplicates=False)[0]
+        putils.save_dir(fname, spins)
+
+    fname = SPINDIR / 'vertex' / 'naive-nonpara' / 'fsaverage5_spins.csv'
+    if not fname.exists():
+        print('Generating naive permutations for fsaverage5 surface')
+        rs = np.random.default_rng(1234)
+        spins = np.column_stack([
+            rs.permutation(len(coords)) for f in range(10000)
+        ])
         putils.save_dir(fname, spins)
 
     # now pre-generate the parcellation spins for five methods. we can't
