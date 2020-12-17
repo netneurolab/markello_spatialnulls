@@ -15,13 +15,13 @@ from brainspace.null_models import moran
 from netneurotools import (datasets as nndata,
                            freesurfer as nnsurf,
                            stats as nnstats)
-from parspin import burt, utils as putils
+from parspin import burt, spatial, utils as putils
 
 ROIDIR = Path('./data/raw/rois').resolve()
 SPDIR = Path('./data/derivatives/spins').resolve()
 DISTDIR = Path('./data/derivatives/geodesic').resolve()
 SIMDIR = Path('./data/derivatives/simulated').resolve()
-SPATNULLS = [
+SPATNULLS = [  # all ournull models we want to run
     'naive-para',
     'naive-nonpara',
     'vazquez-rodriguez',
@@ -34,6 +34,7 @@ SPATNULLS = [
     'moran'
 ]
 VERTEXWISE = [  # we're only running these ones at the vertex level
+    'naive-para',
     'naive-nonpara',
     'vazquez-rodriguez',
     'burt2018',
@@ -46,6 +47,7 @@ N_PROC = 36  # number of parallel workers for surrogate generation
 N_PERM = 10000  # number of permutations for null models
 SEED = 1234  # reproducibility
 
+# a little dataclas to store the results from a single null model
 NullResult = make_dataclass('null', (
     'parcellation', 'scale', 'spatnull', 'alpha', 'prob'
 ))
@@ -144,7 +146,7 @@ def make_surrogates(data, parcellation, scale, spatnull):
     Parameters
     ----------
     data : (N,) pd.DataFrame
-    parcellation : {'atl-cammoun2012', 'atl-schaefer2018''}
+    parcellation : {'atl-cammoun2012', 'atl-schaefer2018'}
     scale : str
     spatnull : {'burt2018', 'burt2020', 'moran'}
 
@@ -164,13 +166,13 @@ def make_surrogates(data, parcellation, scale, spatnull):
                                                    scale, data, inverse=False):
 
         # handle NaNs before generating surrogates; should only be relevant
-        # when using vertex-level data
+        # when using vertex-level data, but good nonetheless
         mask = np.logical_not(np.isnan(hdata))
         surrogates[idx[np.logical_not(mask)]] = np.nan
         hdata, dist, idx = hdata[mask], dist[np.ix_(mask, mask)], idx[mask]
 
         if spatnull == 'burt2018':
-            # Box-Cox transformation requires positive data
+            # Box-Cox transformation requires positive data :man_facepalming:
             hdata += np.abs(dmin) + 0.1
             surrogates[idx] = \
                 burt.batch_surrogates(dist, hdata, n_surr=N_PERM,
@@ -186,6 +188,66 @@ def make_surrogates(data, parcellation, scale, spatnull):
             surrogates[idx] = mrs.fit(dist).randomize(hdata)
 
     return surrogates
+
+
+def get_distmat(data, parcellation, scale):
+    """
+    Returns full distance matrix for given `parcellation` and `scale`
+
+    Parameters
+    ----------
+    data : array_like
+    parcellation : {'atl-cammoun2012', 'atl-schaefer2018'}
+    scale : str
+
+    Returns
+    -------
+    dist : (N, N) np.ndarray
+        Full distance matrix (inter-hemispheric distances set to np.inf)
+    """
+
+    # get "full" distance matrix for data, with inter-hemi set to np.inf
+    dist = np.ones((len(data), len(data))) * np.inf
+    for _, hdist, hidx in putils.yield_data_dist(DISTDIR, parcellation,
+                                                 scale, data, inverse=False):
+        dist[np.ix_(hidx, hidx)] = hdist
+    np.fill_diagonal(dist, 1)
+
+    return dist
+
+
+def calc_moran(dist, nulls):
+    """
+    Calculates Moran's I for every column of `nulls`
+
+    Parameters
+    ----------
+    dist : (N, N) array_like
+        Full distance matrix (inter-hemispheric distance should be np.inf)
+    nulls : (N, P) array_like
+        Null brain maps for which to compute Moran's I
+
+    Returns
+    -------
+    moran : (P,) np.ndarray
+        Moran's I for `P` null maps
+    """
+
+    # do some pre-calculation on our distance matrix to reduce computation time
+    with np.errstate(divide='ignore'):
+        dist = 1 / dist
+    np.fill_diagonal(dist, 0)
+    dist /= dist.sum(axis=-1, keepdims=True)
+
+    # calculate moran's I, masking out NaN values for each null
+    moran = np.zeros(nulls.shape[-1])
+    for n in putils.trange(nulls.shape[-1], desc="Calculating Moran's I"):
+        sim = nulls[:, n]
+        mask = np.logical_not(np.isnan(sim))
+        moran[n] = spatial.morans_i(dist[np.ix_(mask, mask)], sim[mask],
+                                    normalize=False, invert_dist=False)
+
+    return moran
 
 
 def run_null(parcellation, scale, spatnull, alpha):
@@ -209,6 +271,11 @@ def run_null(parcellation, scale, spatnull, alpha):
         With keys 'parcellation', 'scale', 'spatnull', 'alpha', and 'pval'
     """
 
+    def _get_slice(sim):
+        return slice(sim * N_PERM, (sim + 1) * N_PERM)
+
+    print(f'Running {parcellation} {scale} {spatnull} {alpha}...', flush=True)
+
     if parcellation == 'vertex':
         x, y = load_vertex_data(alpha)
     else:
@@ -217,7 +284,12 @@ def run_null(parcellation, scale, spatnull, alpha):
     out = (SIMDIR / alpha / parcellation / 'nulls' / spatnull
            / f'{scale}_nulls.csv')
 
-    pvals = np.zeros(x.shape[-1])
+    # we really just want the pvalues, but to save ourselves from having to
+    # basically re-run large chunks of this code we're going to compute
+    # Moran's I for all the generated null models here, too! we won't do
+    # anything with this for now, really, except save it to disk
+    pvals, moran = np.zeros(x.shape[-1]), np.zeros(x.shape[-1] * N_PERM)
+    dist = get_distmat(y, parcellation, scale)
     if out.exists():
         pvals = np.loadtxt(out).reshape(-1, 1)
     elif spatnull == 'naive-para':
@@ -228,38 +300,45 @@ def run_null(parcellation, scale, spatnull, alpha):
         x, y = np.asarray(x), np.asarray(y)
         fetcher = getattr(nndata, f"fetch_{parcellation.replace('atl-', '')}")
         annotations = fetcher('fsaverage5', data_dir=ROIDIR)[scale]
-        for sim in range(x.shape[-1]):
+        for sim in putils.trange(x.shape[-1], desc="Running nulls"):
             nulls = nnsurf.spin_data(y[:, sim], version='fsaverage5',
                                      lhannot=annotations.lh,
                                      rhannot=annotations.rh,
                                      spin=spins, n_rotate=spins.shape[-1])
             pvals[sim] = calc_pval(x[:, sim], y[:, sim], nulls)
+            moran[_get_slice(sim)] = calc_moran(dist, nulls)
     elif spatnull == 'baum':
         fn = SPDIR / parcellation / spatnull / f'{scale}_spins.csv'
         spins = np.loadtxt(fn, delimiter=',', dtype='int32')
         x, y = np.asarray(x), np.asarray(y)
-        for sim in range(x.shape[-1]):
+        for sim in putils.trange(x.shape[-1], desc="Running nulls"):
             nulls = y[spins, sim]
             nulls[spins == -1] = np.nan
             pvals[sim] = calc_pval(x[:, sim], y[:, sim], nulls)
+            moran[_get_slice(sim)] = calc_moran(dist, nulls)
     elif spatnull in ('burt2018', 'burt2020', 'moran'):
         x, yarr = np.asarray(x), np.asarray(y)
-        for sim in range(x.shape[-1]):
+        for sim in putils.trange(x.shape[-1], desc="Running nulls"):
             try:
                 ysim = y.iloc[:, sim]
             except AttributeError:
                 ysim = y[:, sim]
             nulls = make_surrogates(ysim, parcellation, scale, spatnull)
             pvals[sim] = calc_pval(x[:, sim], yarr[:, sim], nulls)
+            moran[_get_slice(sim)] = calc_moran(dist, nulls)
     else:  # vazquez-rodriguez, vasa, hungarian, naive-nonparametric
         fn = SPDIR / parcellation / spatnull / f'{scale}_spins.csv'
         spins = np.loadtxt(fn, delimiter=',', dtype='int32')
         x, y = np.asarray(x), np.asarray(y)
-        for sim in range(x.shape[-1]):
+        for sim in putils.trange(x.shape[-1], desc="Running nulls"):
             pvals[sim] = calc_pval(x[:, sim], y[:, sim], y[spins, sim])
+            moran[_get_slice(sim)] = calc_moran(dist, y[spins, sim])
 
     # checkpoint our hard work!
     putils.save_dir(out, pvals, overwrite=False)
+    if not np.allclose(moran, 0):
+        out = out.parent / f'{scale}_moran.csv'
+        putils.save_dir(out, moran, overwrite=False)
 
     # calculate probability that p < 0.05
     prob = np.sum(pvals < ALPHA) / len(pvals)
