@@ -7,11 +7,8 @@ import os
 import tempfile
 
 import gstools as gs
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # noqa
 import meshio
 import nibabel as nib
-from nilearn.plotting import plot_surf_stat_map
 import numpy as np
 from scipy import fftpack, stats as sstats
 
@@ -24,7 +21,7 @@ VOL2SURF = 'mri_vol2surf --src {} --out {} --hemi {} --mni152reg ' \
 MSEED = 4294967295
 
 
-def morans_i(dist, y, normalize=False, local=False):
+def morans_i(dist, y, normalize=False, local=False, invert_dist=True):
     """
     Calculates Moran's I from distance matrix `dist` and brain map `y`
 
@@ -39,6 +36,9 @@ def morans_i(dist, y, normalize=False, local=False):
         Default: False
     local : bool, optional
         Whether to calculate local Moran's I instead of global. Default: False
+    invert_dist : bool, optional
+        Whether to invert the distance matrix to generate a weight matrix.
+        Default: True
 
     Returns
     -------
@@ -47,8 +47,9 @@ def morans_i(dist, y, normalize=False, local=False):
     """
 
     # convert distance matrix to weights
-    with np.errstate(divide='ignore'):
-        dist = 1 / dist
+    if invert_dist:
+        with np.errstate(divide='ignore'):
+            dist = 1 / dist
     np.fill_diagonal(dist, 0)
 
     # normalize rows, if desired
@@ -68,39 +69,6 @@ def morans_i(dist, y, normalize=False, local=False):
         return (len(y) - 1) * z * zl / den
 
     return len(y) / dist.sum() * (z * zl).sum() / den
-
-
-def smooth_surface(y, faces, fwhm=6):
-    """
-    Smooths brain map `y` defined by triangle `faces` with kernel `fwhm`
-
-    Parameters
-    ----------
-    y : (N,) array_like
-        Brain map variable of interest
-    faces : (T, 3) array_like
-        Triangular faces comprising spatial mesh of `N` vertices
-    fwhm : float, optional
-        Approximate FWHM of smoothing kernel (in mesh units). Default: 6
-
-    Returns
-    -------
-    y : (N,) array_like
-        Smoothed input
-    """
-
-    edges = np.sort(faces[:, [0, 1, 1, 2, 2, 0]].reshape((-1, 2)), axis=1)
-
-    v = len(y)
-    ec = [2] * len(edges)
-    y1 = np.bincount(edges[:, 0], ec, v) + np.bincount(edges[:, 1], ec, v)
-
-    for i in range(int(np.ceil((fwhm ** 2) / (2 * np.log(2))))):
-        ysum = y[edges[:, 0]] + y[edges[:, 1]]
-        y = (np.bincount(edges[:, 0], ysum, v)
-             + np.bincount(edges[:, 1], ysum, v)) / y1
-
-    return y
 
 
 def _fftind(x, y, z):
@@ -303,50 +271,6 @@ def create_surface_grf(noise=None, alpha=3.0, normalize=True, seed=None):
     os.remove(fn)
 
     return data
-
-
-def make_surf_plot(data, surf='inflated', version='fsaverage5', **kwargs):
-    """
-    Generates 2 x 2 surface plot of `data`
-
-    Parameters
-    ----------
-    data : array_like
-        Data to be plotted; should be left hemisphere first
-    surf : {'orig', 'white', 'smoothwm', 'pial', 'inflated', 'sphere'}
-        Which surface plot should be displaye don
-    version : {'fsaverage', 'fsaverage5', 'fsaverage6'}
-        Which fsaverage surface to use for plots. Dimensionality of `data`
-        should match resolution of surface
-
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        Figure object
-    """
-
-    # get plotting kwargs
-    opts = dict(colorbar=False, vmax=data.max())
-    opts.update(kwargs)
-    for key in ['hemi', 'view', 'axes']:
-        if key in opts:
-            del opts[key]
-
-    data = np.split(data, 2)
-    fs = fetch_fsaverage(version)[surf]
-
-    fig, axes = plt.subplots(2, 2, subplot_kw={'projection': '3d'})
-    for row, view in zip(axes, ['lateral', 'medial']):
-        for n, (col, hemi) in enumerate(zip(row, ['lh', 'rh'])):
-            fn = getattr(fs, hemi)
-            hemi = 'left' if hemi == 'lh' else 'right'
-
-            plot_surf_stat_map(fn, data[n], hemi=hemi, view=view, axes=col,
-                               **opts)
-
-    fig.tight_layout()
-
-    return fig
 
 
 def _mod_medial(data, remove=True):

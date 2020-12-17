@@ -426,3 +426,36 @@ def get_surface_distance(surf, dlabel=None, medial=None, medial_labels=None,
         medial.unlink()
 
     return dist
+
+
+def smooth_surface(y, faces, fwhm=6):
+    """
+    Smooths brain map `y` defined by triangle `faces` with kernel `fwhm`
+
+    Parameters
+    ----------
+    y : (N,) array_like
+        Brain map variable of interest
+    faces : (T, 3) array_like
+        Triangular faces comprising spatial mesh of `N` vertices
+    fwhm : float, optional
+        Approximate FWHM of smoothing kernel (in mesh units). Default: 6
+
+    Returns
+    -------
+    y : (N,) array_like
+        Smoothed input
+    """
+
+    edges = np.sort(faces[:, [0, 1, 1, 2, 2, 0]].reshape((-1, 2)), axis=1)
+
+    v = len(y)
+    ec = [2] * len(edges)
+    y1 = np.bincount(edges[:, 0], ec, v) + np.bincount(edges[:, 1], ec, v)
+
+    for i in range(int(np.ceil((fwhm ** 2) / (2 * np.log(2))))):
+        ysum = y[edges[:, 0]] + y[edges[:, 1]]
+        y = (np.bincount(edges[:, 0], ysum, v)
+             + np.bincount(edges[:, 1], ysum, v)) / y1
+
+    return y
