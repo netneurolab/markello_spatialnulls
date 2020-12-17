@@ -13,7 +13,8 @@ from scipy.cluster import hierarchy
 import seaborn as sns
 
 from netneurotools import datasets as nndata
-from parspin.utils import PARULA, save_brainmap
+from parspin.plotting import save_brainmap
+from parspin.utils import PARULA
 
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.sans-serif'] = ['Verdana']

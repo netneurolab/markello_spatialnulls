@@ -13,7 +13,7 @@ import seaborn as sns
 from brainsmash.mapgen import Base
 from brainspace.null_models import MoranRandomization
 from netneurotools import stats as nnstats
-from parspin import burt, utils as putils
+from parspin import burt, plotting, utils as putils
 
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.sans-serif'] = ['Verdana']
@@ -88,10 +88,10 @@ if __name__ == "__main__":
                     vmin, vmax = np.percentile(surrs, [2.5, 97.5])
                     fname = figdir / medial / f'{scale}.png'
                     fname.parent.mkdir(exist_ok=True)
-                    putils.save_brainmap(surrs[n][:, 0], annot.lh, annot.rh,
-                                         fname, colormap='coolwarm',
-                                         colorbar=False, vmin=vmin, vmax=vmax,
-                                         subject_id='fsaverage5')
+                    plotting.save_brainmap(surrs[n][:, 0], annot.lh, annot.rh,
+                                           fname, subject_id='fsaverage5',
+                                           colormap='coolwarm', colorbar=False,
+                                           vmin=vmin, vmax=vmax)
 
                 # scatter plot of example brains
                 fig, ax = plt.subplots(1, 1)

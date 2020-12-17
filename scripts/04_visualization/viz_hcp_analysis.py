@@ -13,7 +13,7 @@ import seaborn as sns
 
 from netneurotools import datasets as nndata
 from parspin.partitions import YEO_CODES, RSN_AFILLIATION
-from parspin.utils import save_brainmap
+from parspin.plotting import save_brainmap
 
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.sans-serif'] = ['Verdana']
