@@ -6,6 +6,7 @@ Script for running null models on parcellated simulated data
 from dataclasses import asdict, make_dataclass
 from pathlib import Path
 
+from joblib import Parallel, delayed
 import nibabel as nib
 import numpy as np
 import pandas as pd
@@ -216,7 +217,7 @@ def get_distmat(data, parcellation, scale):
     return dist
 
 
-def calc_moran(dist, nulls):
+def calc_moran(dist, nulls, fname):
     """
     Calculates Moran's I for every column of `nulls`
 
@@ -233,21 +234,33 @@ def calc_moran(dist, nulls):
         Moran's I for `P` null maps
     """
 
+    def _moran(dist, sim, medmask):
+        mask = np.logical_and(medmask, np.logical_not(np.isnan(sim)))
+        return spatial.morans_i(dist[np.ix_(mask, mask)], sim[mask],
+                                normalize=False, invert_dist=False)
+
+    if fname.exists():
+        return
+
     # do some pre-calculation on our distance matrix to reduce computation time
-    with np.errstate(divide='ignore'):
+    with np.errstate(divide='ignore', invalid='ignore'):
         dist = 1 / dist
-    np.fill_diagonal(dist, 0)
-    dist /= dist.sum(axis=-1, keepdims=True)
+        np.fill_diagonal(dist, 0)
+        dist /= dist.sum(axis=-1, keepdims=True)
+    # NaNs in the `dist` array are the "original" medial wall; mask these
+    medmask = np.logical_not(np.isnan(dist[:, 0]))
 
-    # calculate moran's I, masking out NaN values for each null
-    moran = np.zeros(nulls.shape[-1])
-    for n in putils.trange(nulls.shape[-1], desc="Calculating Moran's I"):
-        sim = nulls[:, n]
-        mask = np.logical_not(np.isnan(sim))
-        moran[n] = spatial.morans_i(dist[np.ix_(mask, mask)], sim[mask],
-                                    normalize=False, invert_dist=False)
+    # calculate moran's I, masking out NaN values for each null (i.e., the
+    # rotated medial wall)
+    moran = np.array(
+        Parallel(n_jobs=N_PROC)(
+            delayed(_moran)(dist, nulls[:, n], medmask)
+            for n in putils.trange(nulls.shape[-1],
+                                   desc="Calculating Moran's I")
+        )
+    )
 
-    return moran
+    putils.save_dir(fname, moran, overwrite=False)
 
 
 def run_null(parcellation, scale, spatnull, alpha):
@@ -271,9 +284,6 @@ def run_null(parcellation, scale, spatnull, alpha):
         With keys 'parcellation', 'scale', 'spatnull', 'alpha', and 'pval'
     """
 
-    def _get_slice(sim):
-        return slice(sim * N_PERM, (sim + 1) * N_PERM)
-
     print(f'Running {parcellation} {scale} {spatnull} {alpha}...', flush=True)
 
     if parcellation == 'vertex':
@@ -281,20 +291,17 @@ def run_null(parcellation, scale, spatnull, alpha):
     else:
         x, y = load_parc_data(parcellation, scale, alpha)
 
-    out = (SIMDIR / alpha / parcellation / 'nulls' / spatnull
-           / f'{scale}_nulls.csv')
+    pvals_out = (SIMDIR / alpha / parcellation / 'nulls' / spatnull
+                 / f'{scale}_nulls.csv')
+    moran_out = pvals_out.parent / f'{scale}_moran.csv'
 
-    # we really just want the pvalues, but to save ourselves from having to
-    # basically re-run large chunks of this code we're going to compute
-    # Moran's I for all the generated null models here, too! we won't do
-    # anything with this for now, really, except save it to disk
-    pvals, moran = np.zeros(x.shape[-1]), np.zeros(x.shape[-1] * N_PERM)
-    dist = get_distmat(y, parcellation, scale)
-    if out.exists():
-        pvals = np.loadtxt(out).reshape(-1, 1)
+    pvals = np.zeros(x.shape[-1])
+    if pvals_out.exists():
+        pvals = np.loadtxt(pvals_out).reshape(-1, 1)
     elif spatnull == 'naive-para':
         pvals = nnstats.efficient_pearsonr(x, y, nan_policy='omit')[1]
     elif spatnull == 'cornblath':
+        dist = get_distmat(y, parcellation, scale)
         fn = SPDIR / 'vertex' / 'vazquez-rodriguez' / 'fsaverage5_spins.csv'
         spins = np.loadtxt(fn, delimiter=',', dtype='int32')
         x, y = np.asarray(x), np.asarray(y)
@@ -306,8 +313,10 @@ def run_null(parcellation, scale, spatnull, alpha):
                                      rhannot=annotations.rh,
                                      spin=spins, n_rotate=spins.shape[-1])
             pvals[sim] = calc_pval(x[:, sim], y[:, sim], nulls)
-            moran[_get_slice(sim)] = calc_moran(dist, nulls)
+            if sim == 0:
+                calc_moran(dist, nulls, moran_out)
     elif spatnull == 'baum':
+        dist = get_distmat(y, parcellation, scale)
         fn = SPDIR / parcellation / spatnull / f'{scale}_spins.csv'
         spins = np.loadtxt(fn, delimiter=',', dtype='int32')
         x, y = np.asarray(x), np.asarray(y)
@@ -315,8 +324,10 @@ def run_null(parcellation, scale, spatnull, alpha):
             nulls = y[spins, sim]
             nulls[spins == -1] = np.nan
             pvals[sim] = calc_pval(x[:, sim], y[:, sim], nulls)
-            moran[_get_slice(sim)] = calc_moran(dist, nulls)
+            if sim == 0:
+                calc_moran(dist, nulls, moran_out)
     elif spatnull in ('burt2018', 'burt2020', 'moran'):
+        dist = get_distmat(y, parcellation, scale)
         x, yarr = np.asarray(x), np.asarray(y)
         for sim in putils.trange(x.shape[-1], desc="Running nulls"):
             try:
@@ -325,20 +336,20 @@ def run_null(parcellation, scale, spatnull, alpha):
                 ysim = y[:, sim]
             nulls = make_surrogates(ysim, parcellation, scale, spatnull)
             pvals[sim] = calc_pval(x[:, sim], yarr[:, sim], nulls)
-            moran[_get_slice(sim)] = calc_moran(dist, nulls)
+            if sim == 0:
+                calc_moran(dist, nulls, moran_out)
     else:  # vazquez-rodriguez, vasa, hungarian, naive-nonparametric
+        dist = get_distmat(y, parcellation, scale)
         fn = SPDIR / parcellation / spatnull / f'{scale}_spins.csv'
         spins = np.loadtxt(fn, delimiter=',', dtype='int32')
         x, y = np.asarray(x), np.asarray(y)
         for sim in putils.trange(x.shape[-1], desc="Running nulls"):
             pvals[sim] = calc_pval(x[:, sim], y[:, sim], y[spins, sim])
-            moran[_get_slice(sim)] = calc_moran(dist, y[spins, sim])
+            if sim == 0:
+                calc_moran(dist, y[spins, sim], moran_out)
 
     # checkpoint our hard work!
-    putils.save_dir(out, pvals, overwrite=False)
-    if not np.allclose(moran, 0):
-        out = out.parent / f'{scale}_moran.csv'
-        putils.save_dir(out, moran, overwrite=False)
+    putils.save_dir(pvals_out, pvals, overwrite=False)
 
     # calculate probability that p < 0.05
     prob = np.sum(pvals < ALPHA) / len(pvals)
