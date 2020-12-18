@@ -272,7 +272,7 @@ def yield_data_dist(dist_dir, atlas, scale, data, medial=False, inverse=True):
             np.fill_diagonal(dist, 1)
             dist **= -1
 
-        # get indices of data that correspond to relevant `hemi` and subset
+        # get indices of data that correspond to relevant `hemi` and subset.
         # if data is not a pandas DataFrame with hemisphere information assume
         # we can split the data equally in 2
         try:
