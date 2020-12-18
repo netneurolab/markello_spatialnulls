@@ -22,8 +22,8 @@ ROIDIR = Path('./data/raw/rois').resolve()
 SPDIR = Path('./data/derivatives/spins').resolve()
 DISTDIR = Path('./data/derivatives/geodesic').resolve()
 SIMDIR = Path('./data/derivatives/simulated').resolve()
-SPATNULLS = [  # all ournull models we want to run
-    'naive-para',
+SPATNULLS = [  # all our null models we want to run
+    # 'naive-para',
     'naive-nonpara',
     'vazquez-rodriguez',
     'vasa',
@@ -44,7 +44,7 @@ VERTEXWISE = [  # we're only running these ones at the vertex level
 ]
 ALPHA = 0.05  # p-value threshold
 ALPHAS = np.arange(0, 3.5, 0.5)  # spatial autocorrelation parameters
-N_PROC = 36  # number of parallel workers for surrogate generation
+N_PROC = 24  # number of parallel workers for surrogate generation
 N_PERM = 10000  # number of permutations for null models
 SEED = 1234  # reproducibility
 
@@ -226,7 +226,7 @@ def calc_moran(dist, nulls, fname):
     # calculate moran's I, masking out NaN values for each null (i.e., the
     # rotated medial wall)
     moran = np.array(
-        Parallel(n_jobs=N_PROC)(
+        Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(_moran)(dist, nulls[:, n], medmask)
             for n in putils.trange(nulls.shape[-1],
                                    desc="Calculating Moran's I")
@@ -253,7 +253,7 @@ def calc_pval(x, y, nulls):
         P-value of correlation for `x` and `y` against `nulls`
     """
 
-    x, y, nulls = np.asarray(x), np.asarray(y), np.asarray(nulls)
+    x, y, nulls = np.asanyarray(x), np.asanyarray(y), np.asanyarray(nulls)
 
     # calculate real + permuted correlation coefficients
     real = nnstats.efficient_pearsonr(x, y, nan_policy='omit')[0]
@@ -340,7 +340,7 @@ def run_null(parcellation, scale, spatnull, alpha):
         x, y, spins = _load_spins(x, y, fn)
         fetcher = getattr(nndata, f"fetch_{parcellation.replace('atl-', '')}")
         annot = fetcher('fsaverage5', data_dir=ROIDIR)[scale]
-        pvals = np.array(Parallel(n_jobs=N_PROC)(
+        pvals = np.array(Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(_cornblath)(x[:, sim], y[:, sim], spins, annot)
             for sim in putils.trange(x.shape[-1], desc='Running nulls')
         ))
@@ -348,7 +348,7 @@ def run_null(parcellation, scale, spatnull, alpha):
         calc_moran(load_distmat(y, parcellation, scale), nulls, moran_fn)
     elif spatnull == 'baum':
         x, y, spins = _load_spins(x, y, spins_fn)
-        pvals = np.array(Parallel(n_jobs=N_PROC)(
+        pvals = np.array(Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(_baum)(x[:, sim], y[:, sim], spins)
             for sim in putils.trange(x.shape[-1], desc='Running nulls')
         ))
@@ -370,7 +370,7 @@ def run_null(parcellation, scale, spatnull, alpha):
                            nulls, moran_fn)
     else:  # vazquez-rodriguez, vasa, hungarian, naive-nonparametric
         x, y, spins = _load_spins(x, y, spins_fn)
-        pvals = np.array(Parallel(n_jobs=N_PROC)(
+        pvals = np.array(Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(calc_pval)(x[:, sim], y[:, sim], y[spins, sim])
             for sim in putils.trange(x.shape[-1], desc='Running nulls')
         ))
