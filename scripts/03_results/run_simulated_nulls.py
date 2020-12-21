@@ -336,6 +336,7 @@ def run_null(parcellation, scale, spatnull, alpha):
     elif spatnull == 'naive-para':
         pvals = nnstats.efficient_pearsonr(x, y, nan_policy='omit')[1]
     elif spatnull == 'cornblath':
+        dist = load_distmat(y, parcellation, scale)
         fn = SPDIR / 'vertex' / 'vazquez-rodriguez' / 'fsaverage5_spins.csv'
         x, y, spins = _load_spins(x, y, fn)
         fetcher = getattr(nndata, f"fetch_{parcellation.replace('atl-', '')}")
@@ -345,15 +346,16 @@ def run_null(parcellation, scale, spatnull, alpha):
             for sim in putils.trange(x.shape[-1], desc='Running nulls')
         ))
         nulls = _cornblath(x[:, 0], y[:, 0], spins, annot, return_nulls=True)
-        calc_moran(load_distmat(y, parcellation, scale), nulls, moran_fn)
+        calc_moran(dist, nulls, moran_fn)
     elif spatnull == 'baum':
+        dist = load_distmat(y, parcellation, scale)
         x, y, spins = _load_spins(x, y, spins_fn)
         pvals = np.array(Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(_baum)(x[:, sim], y[:, sim], spins)
             for sim in putils.trange(x.shape[-1], desc='Running nulls')
         ))
         nulls = _baum(x[:, 0], y[:, 0], spins, return_nulls=True)
-        calc_moran(load_distmat(y, parcellation, scale), nulls, moran_fn)
+        calc_moran(dist, nulls, moran_fn)
     elif spatnull in ('burt2018', 'burt2020'):
         xarr, yarr = np.asarray(x), np.asarray(y)
         # we can't parallelize this because `make_surrogates()` is parallelized
@@ -369,12 +371,13 @@ def run_null(parcellation, scale, spatnull, alpha):
                 calc_moran(load_distmat(y, parcellation, scale),
                            nulls, moran_fn)
     else:  # vazquez-rodriguez, vasa, hungarian, naive-nonparametric
+        dist = load_distmat(y, parcellation, scale)
         x, y, spins = _load_spins(x, y, spins_fn)
         pvals = np.array(Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(calc_pval)(x[:, sim], y[:, sim], y[spins, sim])
             for sim in putils.trange(x.shape[-1], desc='Running nulls')
         ))
-        calc_moran(load_distmat(y, parcellation, scale), y[spins, 0], moran_fn)
+        calc_moran(dist, y[spins, 0], moran_fn)
 
     # checkpoint our hard work!
     putils.save_dir(pvals_fn, pvals, overwrite=False)
