@@ -163,7 +163,8 @@ def make_surrogates(data, parcellation, scale, spatnull):
                                       n_jobs=N_PROC, seed=SEED)
         elif spatnull == 'burt2020':
             surrogates[idx] = \
-                mapgen.Base(hdata, dist, seed=SEED, n_jobs=N_PROC)(N_PERM, 200)
+                mapgen.Base(hdata, dist,
+                            seed=SEED, n_jobs=N_PROC)(N_PERM, 50).T
         elif spatnull == 'moran':
             np.fill_diagonal(dist, 1)
             dist **= -1
