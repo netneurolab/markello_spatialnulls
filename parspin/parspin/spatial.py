@@ -6,13 +6,11 @@ Functions for calculating and manipulating spatial autocorrelation
 import os
 import tempfile
 
-import gstools as gs
-import meshio
 import nibabel as nib
 import numpy as np
 from scipy import fftpack, stats as sstats
 
-from netneurotools.datasets import fetch_fsaverage, make_correlated_xy
+from netneurotools.datasets import make_correlated_xy
 from netneurotools.freesurfer import check_fs_subjid
 from netneurotools.utils import run
 
@@ -163,43 +161,6 @@ def gaussian_random_field(x, y, z, noise=None, alpha=3.0, normalize=True,
         return (gfield - gfield.mean()) / gfield.std()
 
     return gfield
-
-
-def create_gstools_grf(len_scale=20, seed=None, **kwargs):
-    """
-    Generates GRF on surface (fsaverage5)
-
-    Uses gstools.SRF().mesh() to generate GRF
-
-    Parameters
-    ----------
-    len_scale : int (positive), optional
-        Length scale of Gaussian covariance model. Default: 20
-    seed : None, int, default_rng, optional
-        Random state to seed GRF. Default: None
-
-    Returns
-    -------
-    data : (20484,) np.ndarray
-        Surface representation of GRF
-    """
-
-    rs = np.random.default_rng(seed)
-
-    # make the covariance model with specified len scale + the simulation
-    model = gs.Gaussian(len_scale=len_scale)
-    srf = gs.SRF(model, seed=rs.integers(MSEED))
-
-    fs = fetch_fsaverage('fsaverage5')['sphere']
-    data = np.zeros((20484,))
-    for n, hemi in enumerate(('lh', 'rh')):
-        points, cells = nib.freesurfer.read_geometry(getattr(fs, hemi))
-        mesh = meshio.Mesh(points, [('triangles', cells)])
-        sl = slice(len(data) // 2 * n, len(data) // 2 * (n + 1))
-        # generate the simulated field on the provided mesh
-        data[sl] = srf.mesh(mesh, 'points')
-
-    return data
 
 
 def make_tmpname(suffix):
