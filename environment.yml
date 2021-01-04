@@ -23,8 +23,8 @@ dependencies:
     - tqdm
     - vtk
     - pip:
-        - "brainsmash>=0.0.8"
+        - "brainsmash>=0.0.10"
         - brainspace
-        - "netneurotools>=0.2.2"
+        - "git+https://github.com/netneurolab/netneurotools@c1a9a8383c39dcbb375b7e4f427dbd34519fe0e1"
         - neurosynth
         - pysurfer

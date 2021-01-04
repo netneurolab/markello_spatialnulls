@@ -3,10 +3,12 @@
 Script for running null models on parcellated simulated data
 """
 
+from argparse import ArgumentParser
 from dataclasses import asdict, make_dataclass
+import itertools
 from pathlib import Path
 
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, dump, load
 import nibabel as nib
 import numpy as np
 import pandas as pd
@@ -23,7 +25,7 @@ SPDIR = Path('./data/derivatives/spins').resolve()
 DISTDIR = Path('./data/derivatives/geodesic').resolve()
 SIMDIR = Path('./data/derivatives/simulated').resolve()
 SPATNULLS = [  # all our null models we want to run
-    # 'naive-para',
+    'naive-para',
     'naive-nonpara',
     'vazquez-rodriguez',
     'vasa',
@@ -42,9 +44,17 @@ VERTEXWISE = [  # we're only running these ones at the vertex level
     'burt2020',
     'moran'
 ]
+ALPHAS = [  # spatial autocorrelation params
+    0,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    2.5,
+    3.0
+]
 ALPHA = 0.05  # p-value threshold
-ALPHAS = np.arange(0, 3.5, 0.5)  # spatial autocorrelation parameters
-N_PROC = 24  # number of parallel workers for surrogate generation
+N_PROC = 12  # number of parallel workers for surrogate generation
 N_PERM = 10000  # number of permutations for null models
 SEED = 1234  # reproducibility
 
@@ -225,6 +235,8 @@ def calc_moran(dist, nulls, fname):
 
     # calculate moran's I, masking out NaN values for each null (i.e., the
     # rotated medial wall)
+    fn = dump(dist, spatial.make_tmpname('.mmap'))[0]
+    dist = load(fn, mmap_mode='r')
     moran = np.array(
         Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(_moran)(dist, nulls[:, n], medmask)
@@ -268,7 +280,6 @@ def calc_pval(x, y, nulls):
 def _load_spins(x, y, fn):
     """ Loads spins from `fn` and return all inputs as arrays
     """
-
     spins = np.loadtxt(fn, delimiter=',', dtype='int32')
     return np.asarray(x), np.asarray(y), spins
 
@@ -332,7 +343,7 @@ def run_null(parcellation, scale, spatnull, alpha):
 
     # calculate the null p-values
     if pvals_fn.exists():
-        pvals = np.loadtxt(pvals_fn).reshape(-1, 1)
+        pvals = np.loadtxt(pvals_fn)
     elif spatnull == 'naive-para':
         pvals = nnstats.efficient_pearsonr(x, y, nan_policy='omit')[1]
     elif spatnull == 'cornblath':
@@ -390,6 +401,19 @@ def run_null(parcellation, scale, spatnull, alpha):
 def main():
     parcellations = putils.get_cammoun_schaefer(data_dir=ROIDIR)
 
+    # this chunk of code is only relevant if you're trying to run on an HPC
+    args = _get_parser()
+    if args['task_num'] != 0:
+        task_num = args['task_num'] - 1
+        spatnull, alpha = list(itertools.product(SPATNULLS, ALPHAS))[task_num]
+        alpha = f'alpha-{float(alpha):.1f}'
+        if spatnull in VERTEXWISE:
+            run_null('vertex', 'fsaverage5', spatnull, alpha)
+        for parcellation, annotations in parcellations.items():
+            for scale in annotations:
+                run_null(parcellation, scale, spatnull, alpha)
+        return
+
     # everyone loves a four-level-deep nested for-loop :man_facepalming:
     data = []
     for spatnull in SPATNULLS:
@@ -404,6 +428,15 @@ def main():
                     )
 
     pd.DataFrame(data).to_csv(SIMDIR / 'summary.csv', index=False)
+
+
+def _get_parser():
+    parser = ArgumentParser()
+    parser.add_argument('--task-num', dest='task_num', type=int, default=0,
+                        help="Value 1-70 (inclusive) that determines which "
+                             "combination of spatial null and alpha to run "
+                             "null simulations for")
+    return vars(parser.parse_args())
 
 
 if __name__ == "__main__":
