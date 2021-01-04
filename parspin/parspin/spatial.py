@@ -62,7 +62,7 @@ def morans_i(dist, y, normalize=False, local=False, invert_dist=True):
         with np.errstate(all='ignore'):
             z /= y.std()
 
-    zl = (dist * z).sum(axis=-1)
+    zl = np.squeeze(dist @ z[:, None])
     den = (z * z).sum()
 
     if local:
