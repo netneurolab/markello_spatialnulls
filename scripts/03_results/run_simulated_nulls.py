@@ -156,21 +156,32 @@ def make_surrogates(data, parcellation, scale, spatnull):
         hdata, dist, idx = hdata[mask], dist[np.ix_(mask, mask)], idx[mask]
 
         if spatnull == 'burt2018':
+            fn = dump(dist, spatial.make_tmpname('.mmap'))[0]
+            dist = load(fn, mmap_mode='r')
             # Box-Cox transformation requires positive data :man_facepalming:
             hdata += np.abs(dmin) + 0.1
             surrogates[idx] = \
                 burt.batch_surrogates(dist, hdata, n_surr=N_PERM,
                                       n_jobs=N_PROC, seed=SEED)
         elif spatnull == 'burt2020':
-            surrogates[idx] = \
-                mapgen.Base(hdata, dist,
-                            seed=SEED, n_jobs=N_PROC)(N_PERM, 50).T
+            if parcellation == 'vertex':  # memmap is required for this shit
+                fn = dump(dist, spatial.make_tmpname('.mmap'))[0]
+                dist = load(fn, mmap_mode='r')
+                index = np.argsort(dist, axis=-1)
+                dist = np.sort(dist, axis=-1)
+                surrogates[idx] = \
+                    mapgen.Sampled(hdata, dist, index,
+                                   seed=SEED, n_jobs=N_PROC)(N_PERM).T
+            else:
+                surrogates[idx] = \
+                    mapgen.Base(hdata, dist,
+                                seed=SEED, n_jobs=N_PROC)(N_PERM, 50).T
         elif spatnull == 'moran':
             np.fill_diagonal(dist, 1)
             dist **= -1
             mrs = moran.MoranRandomization(joint=True, n_rep=N_PERM,
                                            tol=1e-6, random_state=SEED)
-            surrogates[idx] = mrs.fit(dist).randomize(hdata)
+            surrogates[idx] = mrs.fit(dist).randomize(hdata).T
 
     return surrogates
 
@@ -289,9 +300,8 @@ def _cornblath(x, y, spins, annot, return_nulls=False):
     """ Calculates p-value using Cornblath method for provided data
     """
     nulls = nnsurf.spin_data(y, version='fsaverage5',
-                             lhannot=annot.lh,
-                             rhannot=annot.rh,
-                             spin=spins, n_rotate=spins.shape[-1])
+                             lhannot=annot.lh, rhannot=annot.rh,
+                             spins=spins, n_rotate=spins.shape[-1])
     if return_nulls:
         return nulls
     return calc_pval(x, y, nulls)
@@ -305,6 +315,22 @@ def _baum(x, y, spins, return_nulls=False):
     if return_nulls:
         return nulls
     return calc_pval(x, y, nulls)
+
+
+def _mrs(x, y, parcellation, scale, spatnull):
+    """ Calculates p-value using MRS method for provided data
+    """
+    nulls = make_surrogates(y, parcellation, scale, spatnull)
+    return calc_pval(x, y, nulls)
+
+
+def _get_ysim(y, sim):
+    """ Gets `sim` column from `y`, accounting for DataFrame vs ndarray
+    """
+    try:
+        return y.iloc[:, sim]
+    except AttributeError:
+        return y[:, sim]
 
 
 def run_null(parcellation, scale, spatnull, alpha):
@@ -325,7 +351,9 @@ def run_null(parcellation, scale, spatnull, alpha):
     Returns
     -------
     stats : dict
-        With keys 'parcellation', 'scale', 'spatnull', 'alpha', and 'pval'
+        With keys 'parcellation', 'scale', 'spatnull', 'alpha', and 'prob',
+        where 'prob' is the probability that the p-value for a given simulation
+        is less than ALPHA (across all simulations)
     """
 
     print(f'Running {parcellation} {scale} {spatnull} {alpha}...', flush=True)
@@ -369,19 +397,25 @@ def run_null(parcellation, scale, spatnull, alpha):
         nulls = _baum(x[:, 0], y[:, 0], spins, return_nulls=True)
         calc_moran(dist, nulls, moran_fn)
     elif spatnull in ('burt2018', 'burt2020'):
-        xarr, yarr = np.asarray(x), np.asarray(y)
+        xarr = np.asarray(x)
         # we can't parallelize this because `make_surrogates()` is parallelized
         pvals = np.zeros(xarr.shape[-1])
-        for sim in putils.trange(x.shape[-1], desc="Running nulls"):
-            try:
-                ysim = y.iloc[:, sim]
-            except AttributeError:
-                ysim = y[:, sim]
+        for sim in putils.trange(x.shape[-1], desc='Running nulls'):
+            ysim = _get_ysim(y, sim)
             nulls = make_surrogates(ysim, parcellation, scale, spatnull)
-            pvals[sim] = calc_pval(xarr[:, sim], yarr[:, sim], nulls)
+            pvals[sim] = calc_pval(xarr[:, sim], ysim, nulls)
             if sim == 0:
                 calc_moran(load_distmat(y, parcellation, scale),
                            nulls, moran_fn)
+    if spatnull == 'moran':
+        xarr = np.asarray(x)
+        pvals = np.array(Parallel(n_jobs=N_PROC)(
+            delayed(_mrs)(xarr[:, sim], _get_ysim(y, sim),
+                          parcellation, scale, spatnull)
+            for sim in putils.trange(x.shape[-1], desc='Running nulls')
+        ))
+        nulls = make_surrogates(_get_ysim(y, 0), parcellation, scale, spatnull)
+        calc_moran(load_distmat(y, parcellation, scale), nulls, moran_fn)
     else:  # vazquez-rodriguez, vasa, hungarian, naive-nonparametric
         dist = load_distmat(y, parcellation, scale)
         x, y, spins = _load_spins(x, y, spins_fn)
