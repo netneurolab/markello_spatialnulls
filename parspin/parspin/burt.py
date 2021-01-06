@@ -168,13 +168,21 @@ def batch_surrogates(x, y, n_surr=1000, n_jobs=1, seed=None):
         Generated surrogate maps
     """
 
+    def _quick_surr(iw, y, seed=None):
+        rs = np.random.default_rng(seed)
+        surr = np.linalg.solve(iw, rs.standard_normal(len(iw)))
+        surr[surr.argsort()] = np.sort(y)
+
+        return surr
+
     rs = np.random.default_rng(seed)
     seeds = rs.integers(np.iinfo(np.int32).max, size=n_surr)
     rho, d0 = estimate_rho_d0(x, y)
+    iw = np.identity(len(x)) - rho * _make_weight_matrix(x, d0)
 
     surrs = np.column_stack(
-        Parallel(n_jobs=n_jobs)(delayed(make_surrogate)(
-            x, y, rho=rho, d0=d0, seed=seed) for seed in seeds)
+        Parallel(n_jobs=n_jobs)(delayed(_quick_surr)(
+            iw, y, seed=seed) for seed in seeds)
     )
 
     return surrs

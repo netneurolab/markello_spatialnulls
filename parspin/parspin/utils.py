@@ -282,7 +282,7 @@ def yield_data_dist(dist_dir, atlas, scale, data, medial=False, inverse=True):
             idx = np.arange(n * (len(data) // 2), (n + 1) * (len(data) // 2))
             hemidata = np.squeeze(data[idx])
 
-        yield hemidata, dist, idx
+        yield hemidata, dist, np.asarray(idx)
 
 
 def drop_unknown(data, drop=DROP):
