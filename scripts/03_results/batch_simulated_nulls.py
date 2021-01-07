@@ -343,7 +343,6 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
         pvals = np.loadtxt(pvals_fn)
     elif spatnull == 'naive-para':
         pvals = nnstats.efficient_pearsonr(x, y, nan_policy='omit')[1]
-        return
     elif spatnull == 'cornblath':
         fn = SPDIR / 'vertex' / 'vazquez-rodriguez' / 'fsaverage5_spins.csv'
         x, y, spins = _load_spins(x, y, fn)
@@ -353,22 +352,25 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
                                  lhannot=annot.lh, rhannot=annot.rh,
                                  spins=spins, n_rotate=spins.shape[-1])
         xsim, ysim = x[:, sim], y[:, sim]
+        pvals = calc_pval(xsim, ysim, nulls)
     elif spatnull == 'baum':
         x, y, spins = _load_spins(x, y, spins_fn)
         nulls = y[spins, sim]
         nulls[spins == -1] = np.nan
         xsim, ysim = x[:, sim], y[:, sim]
+        pvals = calc_pval(xsim, ysim, nulls)
     elif spatnull in ('burt2018', 'burt2020', 'moran'):
         # we can't parallelize this because `make_surrogates()` is parallelized
         xsim = np.asarray(x)[:, sim]
         ysim = _get_ysim(y, sim)
         nulls = make_surrogates(ysim, parcellation, scale, spatnull)
+        pvals = calc_pval(xsim, ysim, nulls)
     else:  # vazquez-rodriguez, vasa, hungarian, naive-nonparametric
         x, y, spins = _load_spins(x, y, spins_fn)
         nulls = y[spins, sim]
         xsim, ysim = x[:, sim], y[:, sim]
+        pvals = calc_pval(xsim, ysim, nulls)
 
-    pvals = calc_pval(xsim, ysim, nulls)
     putils.save_dir(pvals_fn, np.atleast_1d(pvals), overwrite=False)
 
     if sim == -1:
