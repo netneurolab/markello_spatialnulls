@@ -129,7 +129,7 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
     pvals_fn = (SIMDIR / alpha / parcellation / 'nulls' / spatnull
                 / 'pvals' / f'{scale}_nulls_{sim:04d}.csv')
     perms_fn = pvals_fn.parent / f'{scale}_perms_{sim:04d}.csv'
-    moran_fn = pvals_fn.parent / f'{scale}_moran.csv'
+    moran_fn = pvals_fn.parent / f'{scale}_moran_{sim:04d}.csv'
 
     # load simulated data
     alphadir = SIMDIR / alpha
@@ -199,7 +199,7 @@ def main():
     sims = range(args['start'], args['start'] + args['n_sim'])
 
     print(f'N_PERM: {N_PERM}\tN_PROC: {N_PROC}\tSEED: {SEED}\t'
-          f'N_SIM: {len(sims)}')
+          f'START: {sims.start}\tSTOP:{sims.stop}')
 
     for spatnull in args['spatnull']:
         for alpha in args['alpha']:
