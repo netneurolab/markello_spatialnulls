@@ -57,6 +57,7 @@ ALPHA = 0.05  # p-value threshold
 N_PROC = 12  # number of parallel workers for surrogate generation
 N_PERM = 1000  # number of permutations for null models
 SEED = 1234  # reproducibility
+RUN_MORAN = False  # calculate Moran's I?
 
 
 def load_parc_data(parcellation, scale, alpha, sim=None):
@@ -258,7 +259,7 @@ def calc_moran(dist, nulls, fname):
     fn = dump(dist, spatial.make_tmpname('.mmap'))[0]
     dist = load(fn, mmap_mode='r')
     moran = np.array(
-        Parallel(n_jobs=N_PROC, max_nbytes=None)(
+        Parallel(n_jobs=N_PROC)(
             delayed(_moran)(dist, nulls[:, n], medmask)
             for n in putils.trange(nulls.shape[-1],
                                    desc="Calculating Moran's I")
@@ -328,8 +329,8 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
         is less than ALPHA (across all simulations)
     """
 
-    print(f'JOB: {parcellation} {scale} {spatnull} {alpha} '
-          f'sim-{sim} {time.ctime()}', flush=True)
+    print(f'JOB ({time.ctime()}): '
+          f'{parcellation} {scale} {spatnull} {alpha} sim-{sim} ', flush=True)
 
     # filenames (for I/O)
     spins_fn = SPDIR / parcellation / spatnull / f'{scale}_spins.csv'
@@ -344,7 +345,7 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
     else:
         x, y = load_parc_data(parcellation, scale, alpha, sim=sim)
 
-    if sim == -1:
+    if RUN_MORAN:
         dist = load_distmat(y, parcellation, scale)
 
     # calculate the null p-values
@@ -380,7 +381,7 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
     putils.save_dir(perms_fn, np.atleast_1d(perms), overwrite=False)
     putils.save_dir(pvals_fn, np.atleast_1d(pvals), overwrite=False)
 
-    if sim == -1:
+    if RUN_MORAN:
         calc_moran(dist, nulls, moran_fn)
 
 
@@ -394,6 +395,7 @@ def main():
     config = globals()
     config['N_PERM'] = args['n_perm']
     config['N_PROC'] = args['n_proc']
+    config['RUN_MORAN'] = args['run_moran']
 
     alpha = f"alpha-{float(args['alpha']):.1f}"
     if args['start'] is not None:
@@ -414,12 +416,10 @@ def _get_parser():
     parser.add_argument('--start', default=None, type=int)
     parser.add_argument('--n_perm', default=N_PERM, type=int)
     parser.add_argument('--n_proc', default=N_PROC, type=int)
-    parser.add_argument('spatnull', help='Spatial null method',
-                        choices=SPATNULLS)
-    parser.add_argument('alpha', help='Spatial autocorrelation parameter',
-                        choices=ALPHAS)
-    parser.add_argument('sim', type=int, help='Which simulation to run',
-                        choices=range(10000))
+    parser.add_argument('--run_moran', default=False, action='store_true')
+    parser.add_argument('spatnull', choices=SPATNULLS)
+    parser.add_argument('alpha', choices=ALPHAS)
+    parser.add_argument('sim', type=int, choices=range(10000))
     return vars(parser.parse_args())
 
 
