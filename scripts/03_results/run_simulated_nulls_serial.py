@@ -143,11 +143,12 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
         dist = simnulls.load_full_distmat(y, DISTDIR, parcellation, scale)
 
     # calculate the null p-values
+    nulls = None
     if pvals_fn.exists() and perms_fn.exists():
         pvals, perms = np.loadtxt(pvals_fn), np.loadtxt(perms_fn)
     elif spatnull == 'naive-para':
         pvals = nnstats.efficient_pearsonr(x, y, nan_policy='omit')[1]
-        perms = np.array([])
+        perms = np.array([np.nan])
     elif spatnull == 'cornblath':
         fn = SPDIR / 'vertex' / 'vazquez-rodriguez' / 'fsaverage5_spins.csv'
         x, y = np.asarray(x), np.asarray(y)
@@ -178,7 +179,7 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
     putils.save_dir(pvals_fn, np.atleast_1d(pvals), overwrite=False)
 
     # if we're running moran, do it now
-    if RUN_MORAN and not moran_fn.exists():
+    if RUN_MORAN and not moran_fn.exists() and nulls is not None:
         moran = simnulls.calc_moran(dist, nulls, n_jobs=N_PROC)
         putils.save_dir(moran_fn, np.atleast_1d(moran), overwrite=False)
 
