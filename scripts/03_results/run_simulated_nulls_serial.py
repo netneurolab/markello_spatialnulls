@@ -179,7 +179,7 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
 
     # if we're running moran, do it now
     if RUN_MORAN and not moran_fn.exists():
-        moran = simnulls.calc_moran(dist, nulls)
+        moran = simnulls.calc_moran(dist, nulls, n_jobs=N_PROC)
         putils.save_dir(moran_fn, np.atleast_1d(moran), overwrite=False)
 
 

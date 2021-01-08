@@ -146,7 +146,8 @@ def make_surrogate(x, y, rho=None, d0=None, seed=None, return_order=False,
     return out[0] if len(out) == 1 else out
 
 
-def batch_surrogates(x, y, n_surr=1000, n_jobs=1, seed=None):
+def batch_surrogates(x, y, rho=None, d0=None, seed=None, n_surr=1000,
+                     n_jobs=1):
     """
     Generates `n_surr` surrogates maps of `y` using Burt-2018 method
 
@@ -169,8 +170,6 @@ def batch_surrogates(x, y, n_surr=1000, n_jobs=1, seed=None):
         Generated surrogate maps
     """
 
-    import tqdm
-
     def _quick_surr(iw, ysort, seed=None):
         rs = np.random.default_rng(seed)
         u = rs.standard_normal(iw.shape[0])
@@ -185,7 +184,8 @@ def batch_surrogates(x, y, n_surr=1000, n_jobs=1, seed=None):
     rs = np.random.default_rng(seed)
     seeds = rs.integers(np.iinfo(np.int32).max, size=n_surr)
 
-    rho, d0 = estimate_rho_d0(x, y)
+    if rho is None or d0 is None:
+        rho, d0 = estimate_rho_d0(x, y)
     iw = np.identity(len(x)) - rho * _make_weight_matrix(x, d0)
     zeros = np.isclose(iw, 0)
     # convert to sparse array if we can stand it
@@ -196,7 +196,7 @@ def batch_surrogates(x, y, n_surr=1000, n_jobs=1, seed=None):
 
     surrs = np.column_stack(
         Parallel(n_jobs=n_jobs)(delayed(_quick_surr)(
-            iw, ysort, seed=seed) for seed in tqdm.tqdm(seeds))
+            iw, ysort, seed=seed) for seed in seeds)
     )
 
     return surrs
