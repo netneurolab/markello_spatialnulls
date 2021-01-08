@@ -44,21 +44,21 @@ VERTEXWISE = [  # we're only running these ones at the vertex level
     'moran'
 ]
 ALPHAS = [  # spatial autocorrelation params
-    0,
-    0.5,
-    1.0,
-    1.5,
-    2.0,
-    2.5,
-    3.0
+    '0.0',
+    '0.5',
+    '1.0',
+    '1.5',
+    '2.0',
+    '2.5',
+    '3.0'
 ]
 ALPHA = 0.05  # p-value threshold
 N_PROC = 12  # number of parallel workers for surrogate generation
-N_PERM = 10000  # number of permutations for null models
+N_PERM = 1000  # number of permutations for null models
 SEED = 1234  # reproducibility
 
 
-def load_parc_data(parcellation, scale, alpha):
+def load_parc_data(parcellation, scale, alpha, sim=None):
     """
     Loads data for specified `parcellation`, `scale`, and `alpha`
 
@@ -77,18 +77,23 @@ def load_parc_data(parcellation, scale, alpha):
         Loaded dataframe, where each column is a unique simulation
     """
 
+    if sim is None:
+        sim = range(10001)
+    else:
+        sim = [0, sim + 1]
+
     # load data for provided `parcellation` and `scale`
     ddir = SIMDIR / alpha / parcellation
-    x = pd.read_csv(ddir / f'{scale}_x.csv', index_col=0)
-    y = pd.read_csv(ddir / f'{scale}_y.csv', index_col=0)
+    x = pd.read_csv(ddir / f'{scale}_x.csv', index_col=0, usecols=sim)
+    y = pd.read_csv(ddir / f'{scale}_y.csv', index_col=0, usecols=sim)
 
     # drop the corpus callosum / unknown / medial wall parcels, if present
     x, y = putils.drop_unknown(x), putils.drop_unknown(y)
 
-    return x, y
+    return np.squeeze(x), np.squeeze(y)
 
 
-def load_vertex_data(alpha, n_sim=10000):
+def load_vertex_data(alpha, sim=None):
     """
     Loads dense data for specified `alpha`
 
@@ -103,18 +108,23 @@ def load_vertex_data(alpha, n_sim=10000):
         Data arrays, where each column is a unique simulation
     """
 
+    if sim is None:
+        sims = range(10000)
+    else:
+        sims = range(sim, sim + 1)
+
     # load data for provided `parcellation` and `scale`
     ddir = SIMDIR / alpha / 'sim'
-    x, y = np.zeros((20484, n_sim)), np.zeros((20484, n_sim))
-    for sim in range(N_PERM):
-        x[:, sim] = nib.load(ddir / f'x_{sim:04d}.mgh').get_fdata().squeeze()
-        y[:, sim] = nib.load(ddir / f'y_{sim:04d}.mgh').get_fdata().squeeze()
+    x, y = np.zeros((20484, len(sims))), np.zeros((20484, len(sims)))
+    for n, sim in enumerate(sims):
+        x[:, n] = nib.load(ddir / f'x_{sim:04d}.mgh').get_fdata().squeeze()
+        y[:, n] = nib.load(ddir / f'y_{sim:04d}.mgh').get_fdata().squeeze()
 
     # drop the corpus callosum / unknown / medial wall parcels, if present
     mask = np.logical_or(np.all(x == 0, axis=-1), np.all(y == 0, axis=-1))
     x[mask], y[mask] = np.nan, np.nan
 
-    return x, y
+    return np.squeeze(x), np.squeeze(y)
 
 
 def make_surrogates(data, parcellation, scale, spatnull):
@@ -177,6 +187,8 @@ def make_surrogates(data, parcellation, scale, spatnull):
                                            tol=1e-6, random_state=SEED)
             with threadpoolctl.threadpool_limits(limits=N_PROC):
                 surrogates[idx] = mrs.fit(dist).randomize(hdata).T
+
+    Path(fn).unlink()
 
     return surrogates
 
@@ -252,6 +264,7 @@ def calc_moran(dist, nulls, fname):
         )
     )
 
+    Path(fn).unlink()
     putils.save_dir(fname, moran, overwrite=False)
 
 
@@ -270,6 +283,8 @@ def calc_pval(x, y, nulls):
     -------
     pval : float
         P-value of correlation for `x` and `y` against `nulls`
+    perms : np.ndarray
+        Correlations of `x` with `nulls`
     """
 
     x, y, nulls = np.asanyarray(x), np.asanyarray(y), np.asanyarray(nulls)
@@ -279,23 +294,14 @@ def calc_pval(x, y, nulls):
     perms = nnstats.efficient_pearsonr(x, nulls, nan_policy='omit')[0]
     pval = (np.sum(np.abs(perms) >= np.abs(real)) + 1) / (len(perms) + 1)
 
-    return pval
+    return pval, perms
 
 
 def _load_spins(x, y, fn):
     """ Loads spins from `fn` and return all inputs as arrays
     """
-    spins = np.loadtxt(fn, delimiter=',', dtype='int32')
+    spins = np.loadtxt(fn, delimiter=',', dtype='int32')[..., :N_PERM]
     return np.asarray(x), np.asarray(y), spins
-
-
-def _get_ysim(y, sim):
-    """ Gets `sim` column from `y`, accounting for DataFrame vs ndarray
-    """
-    try:
-        return y.iloc[:, sim]
-    except AttributeError:
-        return y[:, sim]
 
 
 def run_null(parcellation, scale, spatnull, alpha, sim):
@@ -327,50 +333,49 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
     spins_fn = SPDIR / parcellation / spatnull / f'{scale}_spins.csv'
     pvals_fn = (SIMDIR / alpha / parcellation / 'nulls' / spatnull
                 / 'pvals' / f'{scale}_nulls_{sim:04d}.csv')
+    perms_fn = pvals_fn.parent / f'{scale}_perms_{sim:04d}.csv'
     moran_fn = pvals_fn.parent / f'{scale}_moran.csv'
 
     # load simulated data
     if parcellation == 'vertex':
-        x, y = load_vertex_data(alpha)
+        x, y = load_vertex_data(alpha, sim=sim)
     else:
-        x, y = load_parc_data(parcellation, scale, alpha)
+        x, y = load_parc_data(parcellation, scale, alpha, sim=sim)
 
     if sim == -1:
         dist = load_distmat(y, parcellation, scale)
 
     # calculate the null p-values
-    if pvals_fn.exists():
+    if pvals_fn.exists() and perms_fn.exists():
         pvals = np.loadtxt(pvals_fn)
+        perms = np.loadtxt(perms_fn)
     elif spatnull == 'naive-para':
         pvals = nnstats.efficient_pearsonr(x, y, nan_policy='omit')[1]
+        perms = np.array([])
     elif spatnull == 'cornblath':
         fn = SPDIR / 'vertex' / 'vazquez-rodriguez' / 'fsaverage5_spins.csv'
         x, y, spins = _load_spins(x, y, fn)
         fetcher = getattr(nndata, f"fetch_{parcellation.replace('atl-', '')}")
         annot = fetcher('fsaverage5', data_dir=ROIDIR)[scale]
-        nulls = nnsurf.spin_data(y[:, sim], version='fsaverage5',
+        nulls = nnsurf.spin_data(y, version='fsaverage5',
                                  lhannot=annot.lh, rhannot=annot.rh,
                                  spins=spins, n_rotate=spins.shape[-1])
-        xsim, ysim = x[:, sim], y[:, sim]
-        pvals = calc_pval(xsim, ysim, nulls)
+        pvals, perms = calc_pval(x, y, nulls)
     elif spatnull == 'baum':
         x, y, spins = _load_spins(x, y, spins_fn)
-        nulls = y[spins, sim]
+        nulls = y[spins]
         nulls[spins == -1] = np.nan
-        xsim, ysim = x[:, sim], y[:, sim]
-        pvals = calc_pval(xsim, ysim, nulls)
+        pvals, perms = calc_pval(x, y, nulls)
     elif spatnull in ('burt2018', 'burt2020', 'moran'):
-        # we can't parallelize this because `make_surrogates()` is parallelized
-        xsim = np.asarray(x)[:, sim]
-        ysim = _get_ysim(y, sim)
-        nulls = make_surrogates(ysim, parcellation, scale, spatnull)
-        pvals = calc_pval(xsim, ysim, nulls)
+        nulls = make_surrogates(y, parcellation, scale, spatnull)
+        pvals, perms = calc_pval(x, y, nulls)
     else:  # vazquez-rodriguez, vasa, hungarian, naive-nonparametric
         x, y, spins = _load_spins(x, y, spins_fn)
-        nulls = y[spins, sim]
-        xsim, ysim = x[:, sim], y[:, sim]
-        pvals = calc_pval(xsim, ysim, nulls)
+        nulls = y[spins]
+        pvals, perms = calc_pval(x, y, nulls)
 
+    # save to disk
+    putils.save_dir(perms_fn, np.atleast_1d(perms), overwrite=False)
     putils.save_dir(pvals_fn, np.atleast_1d(pvals), overwrite=False)
 
     if sim == -1:
@@ -380,8 +385,13 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
 def main():
     parcellations = putils.get_cammoun_schaefer(data_dir=ROIDIR)
 
-    # this chunk of code is only relevant if you're trying to run on an HPC
+    # get inputs
     args = _get_parser()
+
+    # reset some stuff
+    config = globals()
+    config['N_PERM'] = args['n_perm']
+    config['N_PROC'] = args['n_proc']
 
     alpha = f"alpha-{float(args['alpha']):.1f}"
     if args['start'] is not None:
@@ -399,10 +409,15 @@ def main():
 
 def _get_parser():
     parser = ArgumentParser()
-    parser.add_argument('--start', type=int, default=None)
-    parser.add_argument('spatnull', help='Spatial null method')
-    parser.add_argument('alpha', help='Spatial autocorrelation parameter')
-    parser.add_argument('sim', type=int, help='Which simulation to run')
+    parser.add_argument('--start', default=None, type=int)
+    parser.add_argument('--n_perm', default=N_PERM, type=int)
+    parser.add_argument('--n_proc', default=N_PROC, type=int)
+    parser.add_argument('spatnull', help='Spatial null method',
+                        choices=SPATNULLS)
+    parser.add_argument('alpha', help='Spatial autocorrelation parameter',
+                        choices=ALPHAS)
+    parser.add_argument('sim', type=int, help='Which simulation to run',
+                        choices=range(10000))
     return vars(parser.parse_args())
 
 
