@@ -266,7 +266,12 @@ def yield_data_dist(dist_dir, atlas, scale, data, medial=False, inverse=True):
     for n, hemi in enumerate(('lh', 'rh')):
         # load relevant distance matrix
         fn = pathify(dist_dir) / atlas / medial / f'{scale}_{hemi}_dist.csv'
-        dist = np.loadtxt(fn, delimiter=',')
+        npy = fn.with_suffix('.npy')
+        if npy.exists():
+            dist = np.load(npy, allow_pickle=False, mmap_mode='c')
+        else:
+            dist = np.loadtxt(fn, delimiter=',')
+            np.save(npy, dist, allow_pickle=False)
 
         if inverse:
             np.fill_diagonal(dist, 1)

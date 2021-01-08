@@ -6,6 +6,7 @@ Implementation of surrogate map generation as in Burt et al., 2018, Nat Neuro
 from joblib import Parallel, delayed
 import numpy as np
 from scipy.optimize import least_squares
+from scipy import sparse as ssp
 from scipy.stats import boxcox
 
 
@@ -168,21 +169,34 @@ def batch_surrogates(x, y, n_surr=1000, n_jobs=1, seed=None):
         Generated surrogate maps
     """
 
-    def _quick_surr(iw, y, seed=None):
+    import tqdm
+
+    def _quick_surr(iw, ysort, seed=None):
         rs = np.random.default_rng(seed)
-        surr = np.linalg.solve(iw, rs.standard_normal(len(iw)))
-        surr[surr.argsort()] = np.sort(y)
+        u = rs.standard_normal(iw.shape[0])
+        if ssp.issparse(iw):
+            surr = ssp.linalg.spsolve(iw, u)
+        else:
+            surr = np.linalg.solve(iw, u)
+        surr[surr.argsort()] = ysort
 
         return surr
 
     rs = np.random.default_rng(seed)
     seeds = rs.integers(np.iinfo(np.int32).max, size=n_surr)
+
     rho, d0 = estimate_rho_d0(x, y)
     iw = np.identity(len(x)) - rho * _make_weight_matrix(x, d0)
+    zeros = np.isclose(iw, 0)
+    # convert to sparse array if we can stand it
+    if (zeros.sum() / iw.size) > 0.5:
+        iw[np.isclose(iw, 0)] = 0
+        iw = ssp.csr_matrix(iw)
+    ysort = np.sort(y)
 
     surrs = np.column_stack(
         Parallel(n_jobs=n_jobs)(delayed(_quick_surr)(
-            iw, y, seed=seed) for seed in seeds)
+            iw, ysort, seed=seed) for seed in tqdm.tqdm(seeds))
     )
 
     return surrs
