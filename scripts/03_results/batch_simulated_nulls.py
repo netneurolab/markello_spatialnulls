@@ -5,6 +5,7 @@ Script for running null models on parcellated simulated data
 
 from argparse import ArgumentParser
 from pathlib import Path
+import time
 
 from joblib import Parallel, delayed, dump, load
 import nibabel as nib
@@ -167,6 +168,7 @@ def make_surrogates(data, parcellation, scale, spatnull):
             surrogates[idx] = \
                 burt.batch_surrogates(dist, hdata, n_surr=N_PERM,
                                       n_jobs=N_PROC, seed=SEED)
+            Path(fn).unlink()
         elif spatnull == 'burt2020':
             if parcellation == 'vertex':  # memmap is required for this shit
                 fn = dump(dist, spatial.make_tmpname('.mmap'))[0]
@@ -176,6 +178,7 @@ def make_surrogates(data, parcellation, scale, spatnull):
                 surrogates[idx] = \
                     mapgen.Sampled(hdata, dist, index,
                                    seed=SEED, n_jobs=N_PROC)(N_PERM).T
+                Path(fn).unlink()
             else:
                 surrogates[idx] = \
                     mapgen.Base(hdata, dist,
@@ -187,8 +190,6 @@ def make_surrogates(data, parcellation, scale, spatnull):
                                            tol=1e-6, random_state=SEED)
             with threadpoolctl.threadpool_limits(limits=N_PROC):
                 surrogates[idx] = mrs.fit(dist).randomize(hdata).T
-
-    Path(fn).unlink()
 
     return surrogates
 
@@ -327,7 +328,8 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
         is less than ALPHA (across all simulations)
     """
 
-    print(f'JOB: {parcellation} {scale} {spatnull} {alpha} {sim}', flush=True)
+    print(f'JOB: {parcellation} {scale} {spatnull} {alpha} '
+          f'sim-{sim} {time.ctime()}', flush=True)
 
     # filenames (for I/O)
     spins_fn = SPDIR / parcellation / spatnull / f'{scale}_spins.csv'
