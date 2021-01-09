@@ -175,33 +175,35 @@ def run_null(parcellation, scale, spatnull, alpha):
         spins = simnulls.load_spins(fn, n_perm=N_PERM)
         fetcher = getattr(nndata, f"fetch_{parcellation.replace('atl-', '')}")
         annot = fetcher('fsaverage5', data_dir=ROIDIR)[scale]
-        pvals = np.array(Parallel(n_jobs=N_PROC, max_nbytes=None)(
+        out = Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(_cornblath)(x[:, sim], y[:, sim], spins, annot)
             for sim in putils.trange(x.shape[-1], desc='Running simulations')
-        ))
+        )
+        pvals, perms = zip(*out)
     elif spatnull == 'baum':
         x, y = np.asarray(x), np.asarray(y)
         spins = simnulls.load_spins(spins_fn, n_perm=N_PERM)
-        pvals = np.array(Parallel(n_jobs=N_PROC, max_nbytes=None)(
+        out = Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(_baum)(x[:, sim], y[:, sim], spins)
             for sim in putils.trange(x.shape[-1], desc='Running simulations')
-        ))
+        )
+        pvals, perms = zip(*out)
     elif spatnull in ('burt2018', 'burt2020', 'moran'):
         xarr = np.asarray(x)
-        # we can't parallelize this because `make_surrogates()` is parallelized
-        pvals = np.zeros(xarr.shape[-1])
-        pvals = np.array(Parallel(n_jobs=N_PROC, max_nbytes=None)(
+        out = Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(_genmod)(xarr[:, sim], _get_ysim(y, sim),
                              parcellation, scale, spatnull)
             for sim in putils.trange(x.shape[-1], desc='Running simulations')
-        ))
+        )
+        pvals, perms = zip(*out)
     else:  # vazquez-rodriguez, vasa, hungarian, naive-nonparametric
         x, y = np.asarray(x), np.asarray(y)
         spins = simnulls.load_spins(spins_fn, n_perm=N_PERM)
-        pvals = np.array(Parallel(n_jobs=N_PROC, max_nbytes=None)(
+        out = Parallel(n_jobs=N_PROC, max_nbytes=None)(
             delayed(simnulls.calc_pval)(x[:, sim], y[:, sim], y[spins, sim])
             for sim in putils.trange(x.shape[-1], desc='Running simulations')
-        ))
+        )
+        pvals, perms = zip(*out)
 
     # save to disk
     putils.save_dir(perms_fn, np.atleast_1d(perms), overwrite=False)
