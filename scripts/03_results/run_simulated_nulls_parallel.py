@@ -155,6 +155,9 @@ def run_null(parcellation, scale, spatnull, alpha):
                 / f'{scale}_nulls.csv')
     perms_fn = pvals_fn.parent / f'{scale}_perms.csv'
 
+    if pvals_fn.exists() and perms_fn.exists():
+        return
+
     # load simulated data
     alphadir = SIMDIR / alpha
     if parcellation == 'vertex':
@@ -164,11 +167,9 @@ def run_null(parcellation, scale, spatnull, alpha):
                                        n_sim=N_SIM)
 
     # calculate the null p-values
-    if pvals_fn.exists():
-        pvals, perms = np.loadtxt(pvals_fn), np.loadtxt(perms_fn)
-    elif spatnull == 'naive-para':
+    if spatnull == 'naive-para':
         pvals = nnstats.efficient_pearsonr(x, y, nan_policy='omit')[1]
-        perms = np.array([])
+        perms = np.array([np.nan])
     elif spatnull == 'cornblath':
         fn = SPDIR / 'vertex' / 'vazquez-rodriguez' / 'fsaverage5_spins.csv'
         x, y = np.asarray(x), np.asarray(y)
