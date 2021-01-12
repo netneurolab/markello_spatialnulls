@@ -27,7 +27,7 @@ if __name__ == '__main__':
         print('Generating V-R spins for fsaverage5 surface')
         spins = nnsurf.gen_spinsamples(coords, hemi, exact=False,
                                        n_rotate=10000, verbose=True,
-                                       seed=1234, check_duplicates=False)[0]
+                                       seed=1234, check_duplicates=False)
         putils.save_dir(fname, spins)
 
     fname = SPINDIR / 'vertex' / 'naive-nonpara' / 'fsaverage5_spins.csv'

@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from parspin.spatial import matching_multinorm_grfs
-from parspin import utils as putils
+from parspin import simnulls, utils as putils
 
 ROIDIR = Path('./data/raw/rois').resolve()
 SIMDIR = Path('./data/derivatives/simulated').resolve()
@@ -37,7 +37,7 @@ def create_and_save_grfs(corr, alpha, seed, outdir):
     """
 
     # checkpointing in case of restarts
-    if (outdir / f'x_{str(seed).zfill(4)}.mgh').exists():
+    if (outdir / f'x_{seed:04d}.mgh').exists():
         return
 
     x, y = matching_multinorm_grfs(corr=corr, alpha=alpha, seed=seed)
@@ -45,7 +45,7 @@ def create_and_save_grfs(corr, alpha, seed, outdir):
         img = nib.freesurfer.mghformat.MGHImage(
             data.astype('float32'), affine=None
         )
-        fn = outdir / f'{name}_{str(seed).zfill(4)}.mgh'
+        fn = outdir / f'{name}_{seed:04d}.mgh'
         nib.save(img, fn)
 
 
@@ -86,7 +86,7 @@ def parcellate_sim(val, alphadir, annot):
 if __name__ == '__main__':
     parcellations = putils.get_cammoun_schaefer(data_dir=ROIDIR)
 
-    for alpha in np.arange(0, 3.5, 0.5):
+    for alpha in simnulls.ALPHAS:
         outdir = SIMDIR / f'alpha-{float(alpha):.1f}' / 'sim'
         outdir.mkdir(parents=True, exist_ok=True)
 
