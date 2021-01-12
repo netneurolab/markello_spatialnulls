@@ -137,7 +137,7 @@ def load_parc_data(alphadir, parcellation, scale, sim=None, n_sim=MAX_NSIM):
     sim = range(n_sim + 1) if sim is None else [0, sim + 1]
 
     # load data for provided `parcellation` and `scale`
-    ddir = alphadir / parcellation
+    ddir = utils.pathify(alphadir) / parcellation
     x = pd.read_csv(ddir / f'{scale}_x.csv', index_col=0, usecols=sim)
     y = pd.read_csv(ddir / f'{scale}_y.csv', index_col=0, usecols=sim)
 
