@@ -188,7 +188,8 @@ def make_tmpname(suffix):
     return fn
 
 
-def create_surface_grf(noise=None, alpha=3.0, normalize=True, seed=None):
+def create_surface_grf(noise=None, alpha=3.0, normalize=True, seed=None,
+                       medial_val=None):
     """
     Generates GRF on surface (fsaverage5)
 
@@ -231,10 +232,13 @@ def create_surface_grf(noise=None, alpha=3.0, normalize=True, seed=None):
 
     os.remove(fn)
 
+    if medial_val is not None:
+        data = _mod_medial(_mod_medial(data, True), False, medial_val)
+
     return data
 
 
-def _mod_medial(data, remove=True):
+def _mod_medial(data, remove=True, val=0):
     """
     Removes (inserts) medial wall from (into) `data` from fsaverage5 surface
 
@@ -245,6 +249,8 @@ def _mod_medial(data, remove=True):
     remove : bool, optional
         Whether to remove medial wall instead of inserting it. Assumes input
         has (does not have) medial wall. Default: True
+    val : float, optional
+        What value to insert if `remove=False`. Default: 0
 
     Returns
     -------
@@ -267,7 +273,7 @@ def _mod_medial(data, remove=True):
         return np.hstack((x[lhm], y[rhm]))
     else:
         x, y = np.split(data, [np.sum(lhm)])
-        xd, yd = np.zeros(10242), np.zeros(10242)
+        xd, yd = np.ones(10242) * val, np.ones(10242) * val
         xd[lhm], yd[rhm] = x, y
         return np.hstack((xd, yd))
 

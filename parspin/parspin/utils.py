@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+import warnings
 
 from matplotlib.colors import LinearSegmentedColormap
 import nibabel as nib
@@ -10,6 +11,7 @@ from scipy import ndimage
 import tqdm
 
 from netneurotools import datasets as nndata
+from netneurotools.freesurfer import _decode_list
 
 PARULA = LinearSegmentedColormap.from_list('parula', [
     [0.2081000000, 0.1663000000, 0.5292000000],
@@ -148,11 +150,12 @@ def save_dir(fname, data, overwrite=True):
     fname.parent.mkdir(parents=True, exist_ok=True)
     fmt = '%.10f' if data.dtype.kind == 'f' else '%d'
     if fname.exists() and not overwrite:
+        warnings.warn(f'{fname} already exists; not overwriting')
         return
     np.savetxt(fname, data, delimiter=',', fmt=fmt)
 
 
-def parcellate(mgh, annot):
+def parcellate(mgh, annot, drop=None):
     """
     Parcellates surface `mgh` file with `annot`
 
@@ -162,6 +165,8 @@ def parcellate(mgh, annot):
         Surface data to be parcellated
     annot : str or os.PathLike
         FreeSurfer-style annotation file matching `mgh`
+    drop : list-of-str, optional
+        List of parcels to `drop` from parcellated data. Default: None
 
     Returns
     -------
@@ -175,8 +180,16 @@ def parcellate(mgh, annot):
         img = mgh
 
     labels, ctab, names = nib.freesurfer.read_annot(annot)
+    data = ndimage.mean(np.squeeze(img), labels, np.unique(labels))
 
-    return ndimage.mean(np.squeeze(img), labels, np.unique(labels))
+    if drop is not None:
+        if isinstance(drop, str):
+            drop = [drop]
+        drop, names = _decode_list(drop), _decode_list(names)
+        drop = np.intersect1d(names, drop)
+        data = np.delete(data, [names.index(f) for f in drop])
+
+    return data
 
 
 def get_names(*, lh, rh):

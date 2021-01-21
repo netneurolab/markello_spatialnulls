@@ -173,7 +173,7 @@ def load_vertex_data(alphadir, sim=None, n_sim=MAX_NSIM):
     sims = range(n_sim) if sim is None else range(sim, sim + 1)
 
     # load data for provided `parcellation` and `scale`
-    ddir = alphadir / 'sim'
+    ddir = utils.pathify(alphadir) / 'sim'
     x, y = np.zeros((20484, len(sims))), np.zeros((20484, len(sims)))
     for n, sim in enumerate(sims):
         x[:, n] = nib.load(ddir / f'x_{sim:04d}.mgh').get_fdata().squeeze()
