@@ -137,13 +137,6 @@ def run_null(parcellation, scale, spatnull, alpha):
         Name of spin method to be used
     alpha : float
         Spatial autocorrelation parameter to be used
-
-    Returns
-    -------
-    stats : dict
-        With keys 'parcellation', 'scale', 'spatnull', 'alpha', and 'prob',
-        where 'prob' is the probability that the p-value for a given simulation
-        is less than ALPHA (across all simulations)
     """
 
     print(f'{time.ctime()}: {parcellation} {scale} {spatnull} {alpha} ',

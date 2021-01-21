@@ -47,6 +47,11 @@ def pval_by_subsets(parcellation, scale, spatnull, alpha):
     pvals : pd.DataFrame
     """
 
+    print(spatnull, alpha, parcellation, scale)
+
+    if spatnull == 'naive-para':
+        return
+
     # load simulated data
     alphadir = SIMDIR / alpha
     if parcellation == 'vertex':
@@ -58,6 +63,7 @@ def pval_by_subsets(parcellation, scale, spatnull, alpha):
     perms = np.loadtxt(alphadir / parcellation / 'nulls' / spatnull / 'pvals'
                        / f'{scale}_perms_{SIM}.csv')
 
+    orig = pval_from_perms(corr, perms)
     pvals = defaultdict(list)
     for subset in [100, 500, 1000, 5000]:
         rs = np.random.default_rng(SEED)
@@ -65,16 +71,13 @@ def pval_by_subsets(parcellation, scale, spatnull, alpha):
             # select `subset` correlations from `perms` and calculate p-value
             # store the p-value and repeat `N_PVALS` times
             sub = rs.choice(perms, size=subset, replace=False)
-            pvals[subset].append(pval_from_perms(corr, sub))
+            pvals[subset].append(pval_from_perms(corr, sub) - orig)
         # arrays are nicer than lists
         pvals[subset] = np.asarray(pvals[subset])
 
     df = pd.melt(pd.DataFrame(pvals), var_name='n_nulls', value_name='p_value')
     # add single p-value generated from 10000 nulls
-    df = df.append({
-        'n_nulls': len(perms), 'p_value': pval_from_perms(corr, perms)},
-        ignore_index=True
-    ).assign(
+    df = df.assign(
         parcellation=parcellation, scale=scale, spatnull=spatnull, alpha=alpha
     )
 
@@ -86,8 +89,8 @@ def get_prob(parcellation, scale, spatnull, alpha):
     """
 
     nulldir = SIMDIR / alpha / parcellation / 'nulls' / spatnull
-    pvals_fn = nulldir / f'{scale}_nulls.csv'
-    prob = np.sum(np.loadtxt(pvals_fn) < 0.05)
+    pvals = np.loadtxt(nulldir / f'{scale}_nulls.csv')
+    prob = np.sum(pvals < 0.05) / len(pvals)
 
     return asdict(NullResult(parcellation, scale, spatnull, alpha, prob))
 
@@ -99,13 +102,11 @@ def main():
                                   'n_nulls', 'p_value'])
     nullresults = []
     for spatnull in simnulls.SPATNULLS:
-        if spatnull == 'naive-para':  # can't do that one :man_shrugging:
-            continue
         for alpha in simnulls.ALPHAS:
             if spatnull in simnulls.VERTEXWISE:
                 pvals = pvals.append(
                     pval_by_subsets('vertex', 'fsaverage5', spatnull, alpha),
-                    ignore_index=True, sort=True
+                    ignore_index=True, sort=True,
                 )
                 nullresults.append(
                     get_prob('vertex', 'fsaverage5', spatnull, alpha)
@@ -117,5 +118,12 @@ def main():
                         ignore_index=True, sort=True
                     )
                     nullresults.append(
-                        get_prob('vertex', 'fsaverage5', spatnull, alpha)
+                        get_prob(parcellation, scale, spatnull, alpha)
                     )
+
+    pvals.to_csv(SIMDIR / 'pval_summary.csv', index=False)
+    pd.DataFrame(nullresults).to_csv(SIMDIR / 'prob_summary.csv', index=False)
+
+
+if __name__ == "__main__":
+    main()

@@ -16,6 +16,12 @@ SIMDIR = Path('./data/derivatives/simulated').resolve()
 N_PERM = 1000  # number of permutations for null models
 N_SIM = 1000  # number of simulations to run
 
+SPATNULLS = [
+    'burt2018',
+    'burt2020',
+    'moran'
+]
+
 
 def combine_nulls(parcellation, scale, spatnull, alpha):
     """
@@ -32,6 +38,8 @@ def combine_nulls(parcellation, scale, spatnull, alpha):
     alpha : float
         Spatial autocorrelation parameter to be used
     """
+
+    print(f'{spatnull} {alpha} {parcellation} {scale}')
 
     nulldir = SIMDIR / alpha / parcellation / 'nulls' / spatnull
     pvals_fn = nulldir / f'{scale}_nulls.csv'
@@ -50,7 +58,7 @@ def combine_nulls(parcellation, scale, spatnull, alpha):
 
 def main():
     parcellations = putils.get_cammoun_schaefer(data_dir=ROIDIR)
-    for spatnull in simnulls.SPATNULLS:
+    for spatnull in SPATNULLS:
         for alpha in simnulls.ALPHAS:
             if spatnull in simnulls.VERTEXWISE:
                 combine_nulls('vertex', 'fsaverage5', spatnull, alpha)
