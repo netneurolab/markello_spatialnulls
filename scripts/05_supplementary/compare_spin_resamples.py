@@ -15,7 +15,7 @@ from netneurotools import freesurfer as nnsurf, stats as nnstats
 from parspin import utils as putils
 
 plt.rcParams['svg.fonttype'] = 'none'
-plt.rcParams['font.sans-serif'] = ['Verdana']
+plt.rcParams['font.sans-serif'] = ['Myriad Pro']
 plt.rcParams['font.size'] = 28.0
 
 ROIDIR = Path('./data/raw/rois').resolve()

@@ -34,6 +34,6 @@ if __name__ == "__main__":
                 probs = probs / spins.shape[-1]
                 # generate and save brain plot
                 out = FIGDIR / name / sptype / f'{scale}.png'
-                plotting.save_brainmap(probs, annot.lh, annot.rh, out,
+                plotting.save_brainmap(probs, out, annot.lh, annot.rh,
                                        subject_id='fsaverage5',
                                        views=['lat', 'med'])

@@ -16,7 +16,7 @@ from netneurotools import stats as nnstats
 from parspin import burt, plotting, utils as putils
 
 plt.rcParams['svg.fonttype'] = 'none'
-plt.rcParams['font.sans-serif'] = ['Verdana']
+plt.rcParams['font.sans-serif'] = ['Myriad Pro']
 plt.rcParams['font.size'] = 28.0
 
 SEED = 1234
@@ -88,8 +88,9 @@ if __name__ == "__main__":
                     vmin, vmax = np.percentile(surrs, [2.5, 97.5])
                     fname = figdir / medial / f'{scale}.png'
                     fname.parent.mkdir(exist_ok=True)
-                    plotting.save_brainmap(surrs[n][:, 0], annot.lh, annot.rh,
-                                           fname, subject_id='fsaverage5',
+                    plotting.save_brainmap(surrs[n][:, 0], fname,
+                                           annot.lh, annot.rh,
+                                           subject_id='fsaverage5',
                                            colormap='coolwarm', colorbar=False,
                                            vmin=vmin, vmax=vmax)
 

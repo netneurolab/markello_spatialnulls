@@ -13,7 +13,7 @@ import pandas as pd
 import seaborn as sns
 
 plt.rcParams['svg.fonttype'] = 'none'
-plt.rcParams['font.sans-serif'] = ['Verdana']
+plt.rcParams['font.sans-serif'] = ['Myriad Pro']
 plt.rcParams['font.size'] = 28.0
 
 NSDIR = Path('./data/derivatives/neurosynth').resolve()

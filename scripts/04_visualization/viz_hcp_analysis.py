@@ -16,7 +16,7 @@ from parspin.partitions import YEO_CODES, RSN_AFILLIATION
 from parspin.plotting import save_brainmap
 
 plt.rcParams['svg.fonttype'] = 'none'
-plt.rcParams['font.sans-serif'] = ['Verdana']
+plt.rcParams['font.sans-serif'] = ['Myriad Pro']
 plt.rcParams['font.size'] = 28.0
 
 HCPDIR = Path('./data/derivatives/hcp').resolve()
@@ -63,10 +63,10 @@ if __name__ == "__main__":
 
     # plot original
     data = np.asarray(t1t2['myelin'])
-    save_brainmap(data, lh, rh, 't1wt2w_0.png',
+    save_brainmap(data, 't1wt2w_0.png', lh=lh, rh=rh,
                   colormap='coolwarm', vmin=1.0, vmax=1.6)
     for n, spin in enumerate(spins.T, 1):
-        save_brainmap(data[spin], lh, rh, f't1wt2w_{n}.png',
+        save_brainmap(data[spin], f't1wt2w_{n}.png', lh=lh, rh=rh,
                       colormap='coolwarm', vmin=1.0, vmax=1.6)
 
     null_dist = np.loadtxt(

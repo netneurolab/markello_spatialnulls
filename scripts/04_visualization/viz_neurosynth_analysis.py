@@ -17,7 +17,7 @@ from parspin.plotting import save_brainmap
 from parspin.utils import PARULA
 
 plt.rcParams['svg.fonttype'] = 'none'
-plt.rcParams['font.sans-serif'] = ['Verdana']
+plt.rcParams['font.sans-serif'] = ['Myriad Pro']
 plt.rcParams['font.size'] = 28.0
 
 FIGSIZE = 500
@@ -147,12 +147,12 @@ if __name__ == "__main__":
         # symmetrical colorbar
         vmin, vmax = np.percentile(data[term], [2.5, 97.5])
         lim = max(abs(vmin), abs(vmax))
-        save_brainmap(data[term], lh, rh, f'{term}_0.png',
+        save_brainmap(data[term], f'{term}_0.png', lh=lh, rh=rh,
                       colormap=cmap, vmin=-lim, vmax=lim)
         # get spins, in case we want those, too
         for n, spin in enumerate(spins.T, 1):
             plot = np.asarray(data[term])[spin]
-            save_brainmap(plot, lh, rh, f'{term}_{n}.png',
+            save_brainmap(plot, f'{term}_{n}.png', lh=lh, rh=rh,
                           colormap=cmap, vmin=-lim, vmax=lim)
 
     # save example null distribution
