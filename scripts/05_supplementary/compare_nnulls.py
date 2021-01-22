@@ -5,7 +5,6 @@ done at the level of each null method, but simulations are run individually)
 """
 
 from collections import defaultdict
-from dataclasses import asdict, make_dataclass
 from pathlib import Path
 
 import numpy as np
@@ -16,14 +15,11 @@ from parspin import simnulls, utils as putils
 
 ROIDIR = Path('./data/raw/rois').resolve()
 SIMDIR = Path('./data/derivatives/simulated').resolve()
+OUTDIR = Path('./data/derivatives/supplementary/comp_nnulls')
 
 SEED = 1234  # reproducibility
 SIM = 9999  # which simulation was used to generate 10000 nulls
 N_PVALS = 1000  # how many repeated draws should be done to calculate pvals
-
-NullResult = make_dataclass(
-    'NullResult', ('parcellation', 'scale', 'spatnull', 'alpha', 'prob')
-)
 
 
 def pval_from_perms(actual, null):
@@ -37,10 +33,14 @@ def pval_by_subsets(parcellation, scale, spatnull, alpha):
     """
     Parameters
     ----------
-    parcellation : {'vertex', 'atl-cammoun2012', 'atl-schaefer2018'}
+    parcellation : str
+        Name of parcellation to be used
     scale : str
+        Scale of `parcellation` to be used
     spatnull : str
-    alpha : str
+        Name of spin method to be used
+    alpha : float
+        Spatial autocorrelation parameter to be used
 
     Returns
     -------
@@ -75,54 +75,36 @@ def pval_by_subsets(parcellation, scale, spatnull, alpha):
         # arrays are nicer than lists
         pvals[subset] = np.asarray(pvals[subset])
 
-    df = pd.melt(pd.DataFrame(pvals), var_name='n_nulls', value_name='p_value')
+    df = pd.melt(pd.DataFrame(pvals), var_name='n_nulls', value_name='pval')
     # add single p-value generated from 10000 nulls
     df = df.assign(
-        parcellation=parcellation, scale=scale, spatnull=spatnull, alpha=alpha
+        parcellation=parcellation,
+        scale=scale,
+        spatnull=spatnull,
+        alpha=alpha
     )
 
-    return df
-
-
-def get_prob(parcellation, scale, spatnull, alpha):
-    """ Gets probability of p-values of simulations for given null being < 0.05
-    """
-
-    nulldir = SIMDIR / alpha / parcellation / 'nulls' / spatnull
-    pvals = np.loadtxt(nulldir / f'{scale}_nulls.csv')
-    prob = np.sum(pvals < 0.05) / len(pvals)
-
-    return asdict(NullResult(parcellation, scale, spatnull, alpha, prob))
+    order = ['parcellation', 'scale', 'spatnull', 'alpha', 'n_nulls', 'pval']
+    return df[order]
 
 
 def main():
+    OUTDIR.mkdir(parents=True, exist_ok=True)
+    subsets = []
     parcellations = putils.get_cammoun_schaefer(data_dir=ROIDIR)
-
-    pvals = pd.DataFrame(columns=['parcellation', 'scale', 'spatnull', 'alpha',
-                                  'n_nulls', 'p_value'])
-    nullresults = []
     for spatnull in simnulls.SPATNULLS:
         for alpha in simnulls.ALPHAS:
             if spatnull in simnulls.VERTEXWISE:
-                pvals = pvals.append(
+                subsets.append(
                     pval_by_subsets('vertex', 'fsaverage5', spatnull, alpha),
-                    ignore_index=True, sort=True,
-                )
-                nullresults.append(
-                    get_prob('vertex', 'fsaverage5', spatnull, alpha)
                 )
             for parcellation, annotations in parcellations.items():
                 for scale in annotations:
-                    pvals = pvals.append(
+                    subsets.append(
                         pval_by_subsets(parcellation, scale, spatnull, alpha),
-                        ignore_index=True, sort=True
                     )
-                    nullresults.append(
-                        get_prob(parcellation, scale, spatnull, alpha)
-                    )
-
-    pvals.to_csv(SIMDIR / 'pval_summary.csv', index=False)
-    pd.DataFrame(nullresults).to_csv(SIMDIR / 'prob_summary.csv', index=False)
+    subsets = pd.concat(subsets, ignore_index=True, sort=True)
+    subsets.to_csv(OUTDIR / 'nnulls_summary.csv', index=False)
 
 
 if __name__ == "__main__":
