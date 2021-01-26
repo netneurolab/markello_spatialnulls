@@ -13,19 +13,22 @@ from netneurotools import (datasets as nndata,
                            utils as nnutils)
 from parspin import burt
 from parspin.plotting import save_brainmap
+# from parspin.utils import PARULA
 
 FIGSIZE = 500
 SPINDIR = Path('./data/derivatives/spins').resolve()
 DISTDIR = Path('./data/derivatives/geodesic').resolve()
 ROIDIR = Path('./data/raw/rois').resolve()
 FIGDIR = Path('./figures/spins/examples').resolve()
-
+OPTS = {
+    'colorbar': False,
+    'colormap': 'coolwarm',
+    'vmin': 0
+}
 warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
 
 
 if __name__ == "__main__":
-    FIGDIR.mkdir(parents=True, exist_ok=True)
-
     cammoun = nndata.fetch_cammoun2012('MNI152NLin2009aSym', data_dir=ROIDIR)
     name, scale = 'atl-cammoun2012', 'scale125'
     lh, rh = nndata.fetch_cammoun2012('fsaverage', data_dir=ROIDIR)[scale]
@@ -51,19 +54,17 @@ if __name__ == "__main__":
         data[start:end] = np.arange(i)
         start = i
     np.put(data, order, data)
-    vmax = len(data) - n_right
+    OPTS['vmax'] = len(data) - n_right
 
     # plot original data and save
-    save_brainmap(data, FIGDIR / 'raw_surf.png', lh, rh,
-                  colorbar=False, vmin=0, vmax=vmax)
+    save_brainmap(data, FIGDIR / 'raw_surf.png', lh, rh, **OPTS)
 
     spins = ['naive-nonpara', 'vazquez-rodriguez', 'vasa', 'hungarian', 'baum']
     for sptype in spins:
         spin = np.loadtxt(SPINDIR / name / sptype / f'{scale}_spins.csv',
                           delimiter=',', dtype=int, usecols=0)
         plot = np.append(data, [np.nan])[spin]  # accounts for 'baum' (-1 idx)
-        save_brainmap(plot, FIGDIR / f'{sptype}_surf.png', lh, rh,
-                      colorbar=False, vmin=0, vmax=vmax)
+        save_brainmap(plot, FIGDIR / f'{sptype}_surf.png', lh, rh, **OPTS)
 
     # cornblath
     spin = np.loadtxt(SPINDIR / 'vertex' / 'vazquez-rodriguez'
@@ -72,8 +73,7 @@ if __name__ == "__main__":
     lh5, rh5 = nndata.fetch_cammoun2012('fsaverage5')[scale]
     plot = nnsurf.spin_data(data, lhannot=lh5, rhannot=rh5, spins=spin,
                             n_rotate=1)
-    save_brainmap(plot, FIGDIR / 'cornblath_surf.png', lh, rh,
-                  colorbar=False, vmin=0, vmax=vmax)
+    save_brainmap(plot, FIGDIR / 'cornblath_surf.png', lh, rh, **OPTS)
 
     # burt 2018
     lhdata, rhdata = data[:end - start], data[end - start:]
@@ -85,17 +85,16 @@ if __name__ == "__main__":
         burt.make_surrogate(lhdist, lhdata + 1, seed=1234),
         burt.make_surrogate(rhdist, rhdata + 1, seed=1234)
     ))
-    save_brainmap(plot, FIGDIR / 'burt2018_surf.png', lh, rh,
-                  colorbar=False, vmin=0, vmax=vmax)
+    save_brainmap(plot, FIGDIR / 'burt2018_surf.png', lh, rh, **OPTS)
 
     # burt 2020 (need to rescale to original data range)
-    np.random.seed(1234)
-    plot = np.column_stack([np.hstack((
-        nnutils.rescale(Base(lhdata, lhdist)(1), lhdata.min(), lhdata.max()),
-        nnutils.rescale(Base(rhdata, rhdist)(1), rhdata.min(), rhdata.max())
-    )) for f in range(54)])[:, -1]
-    save_brainmap(plot, FIGDIR / 'burt2020_surf.png', lh, rh,
-                  colorbar=False, vmin=0, vmax=vmax)
+    plot = np.hstack((
+        nnutils.rescale(Base(lhdata, lhdist, seed=1234)(200, 50).T[:, 180],
+                        lhdata.min(), lhdata.max()),
+        nnutils.rescale(Base(rhdata, rhdist, seed=1234)(200, 50).T[:, 180],
+                        rhdata.min(), rhdata.max())
+    ))
+    save_brainmap(plot, FIGDIR / 'burt2020_surf.png', lh, rh, **OPTS)
 
     # moran spectral randomization
     np.fill_diagonal(lhdist, 1)
@@ -108,5 +107,4 @@ if __name__ == "__main__":
         np.squeeze(mrs.fit(lhdist).randomize(lhdata)),
         np.squeeze(mrs.fit(rhdist).randomize(rhdata))
     ))[611]
-    save_brainmap(plot, FIGDIR / 'moran_surf.png', lh, rh,
-                  colorbar=False, vmin=0, vmax=vmax)
+    save_brainmap(plot, FIGDIR / 'moran_surf.png', lh, rh, **OPTS)
