@@ -11,7 +11,7 @@ import pandas as pd
 import seaborn as sns
 
 from parspin.simnulls import SPATNULLS
-from parspin.utils import pathify
+from parspin.utils import pathify, PARCHUES, SPATHUES
 
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.sans-serif'] = ['Myriad Pro']
@@ -31,22 +31,20 @@ REPLACE = {
 }
 
 
-def rgb255(x):
-    return np.around(np.asarray(x) * 255)
-
-
-REDS = rgb255(sns.color_palette('Reds', 7, desat=0.7)[-5:])
-BLUES = rgb255(sns.color_palette('Blues', 4, desat=0.5)[-3:])
-PURPLES = rgb255(sns.color_palette('Purples', 5, desat=0.8))[[2, 4]]
-SPATHUES = list(np.r_[PURPLES, REDS, BLUES] / 255)
-
-
 def savefig(fig, fname):
     fname = pathify(fname)
     if not fname.parent.exists():
         fname.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(fname, bbox_inches='tight', transparent=True)
     plt.close(fig=fig)
+
+
+def remove_caps(ax):
+    # remove caps on boxplot whiskers
+    caps = (list(range(2, len(ax.lines), 6))
+            + list(range(3, len(ax.lines), 6)))
+    for line in caps:
+        ax.lines[line].set_visible(False)
 
 
 if __name__ == "__main__":
@@ -72,10 +70,10 @@ if __name__ == "__main__":
     savefig(fg.fig, FIGDIR / 'pvals' / 'pvals_all.svg')
 
     # plot -log10(p) vs alpha for simulations with r = 0.15 +/- 0.025
-    data = data.query('corr >= 0.125 & corr <= 0.175')
     fg = sns.relplot(x='alpha', y='-log10(p)', hue='spatnull',
                      palette=SPATHUES, linewidth=2.5,
-                     col='parcellation', kind='line', data=data)
+                     col='parcellation', kind='line',
+                     data=data.query('corr >= 0.125 & corr <= 0.175'))
     fg.set_titles('{col_name}')
     fg.set(xticklabels=[0.0, '', '', 1.5, '', '', 3.0],
            xlabel='spatial autocorrelation',
@@ -87,12 +85,20 @@ if __name__ == "__main__":
     savefig(fg.fig, FIGDIR / 'pvals' / 'pvals_thresh.svg')
 
     # plot correlations for dense v parcellated
-    for alpha in data['alpha'].unique():
-        ax = sns.kdeplot(x='corr', hue='parcellation', legend=False,
-                         data=data.query(f'alpha == "{alpha}"'))
-        ax.set(xlim=[-0.05, 0.35], xticks=[0, 0.15, 0.30])
-        sns.despine(ax=ax)
-        savefig(ax.figure, FIGDIR / 'corrs' / f'{alpha}.svg')
+    ax = sns.boxplot(x='alpha', y='corr', hue='parcellation',
+                     data=data.query('spatnull == "naive-nonpara"'),
+                     palette=PARCHUES, fliersize=0, saturation=1,
+                     linewidth=1.0)
+    ax.legend_.set_visible(False)
+    ax.set(ylim=(0.025, 0.275), yticks=[0.05, 0.15, 0.25],
+           xticklabels=[0.0, '', '', 1.5, '', '', 3.0],
+           xlabel='spatial autocorrelation',
+           ylabel='correlation (r)')
+    remove_caps(ax)
+    sns.despine(ax=ax)
+    savefig(ax.figure, FIGDIR / 'corrs' / 'all_corrs.svg')
+
+    # plot null correlations ??
 
     # plot moran's I for diff spatnulls
     data = pd.read_csv(SIMDIR / 'moran_summary.csv')
@@ -110,18 +116,16 @@ if __name__ == "__main__":
         # make boxplot
         ax = sns.boxplot(x='spatnull', y='d(moran)', hue='parcellation',
                          data=plotdata, fliersize=0, linewidth=1.0,
-                         order=SPATNULLS[1:])
+                         order=SPATNULLS[1:], palette=PARCHUES,
+                         saturation=1)
         ax.legend_.set_visible(False)
         ax.hlines(0.0, *ax.get_xlim(), linestyle='dashed', color='black',
                   linewidth=1.0)
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
         ax.set(xlabel='null framework')
         sns.despine(ax=ax)
         # remove caps on boxplot whiskers
-        caps = (list(range(2, len(ax.lines), 6))
-                + list(range(3, len(ax.lines), 6)))
-        for line in caps:
-            ax.lines[line].set_visible(False)
+        remove_caps(ax)
         # add empirical Moran's I as text to plot
         text = pd.DataFrame(
             np.unique(empirical.reset_index()
@@ -132,7 +136,20 @@ if __name__ == "__main__":
         for n, parc in enumerate(['vertex', 'cammoun', 'schaefer']):
             ax.text(0.25, ystart - (0.1 * n),
                     f'{parc}: {text.loc[parc, "moran"]:.2f}',
-                    color=sns.color_palette(n_colors=3)[n],
+                    color=PARCHUES[n],
                     transform=ax.transAxes,
                     fontdict={'fontsize': 24})
-        savefig(ax.figure, FIGDIR / 'moran' / f'{alpha}.svg')
+        savefig(ax.figure, FIGDIR / 'moran' / f'null_{alpha}.svg')
+
+        # now, boxplot of empirical Moran's I across ALL simulations
+        ax = sns.boxplot(x='spatnull', y='moran', hue='parcellation',
+                         data=adata, fliersize=0, linewidth=1.0,
+                         order=['empirical'] + SPATNULLS[1:], palette=PARCHUES,
+                         saturation=1)
+        ax.legend_.set_visible(False)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
+        ax.set(xlabel='null framework')
+        sns.despine(ax=ax)
+        # remove caps on boxplot whiskers
+        remove_caps(ax)
+        savefig(ax.figure, FIGDIR / 'moran' / f'empirical_{alpha}.svg')
