@@ -5,6 +5,7 @@ done at the level of each null method, but simulations are run individually)
 """
 
 from argparse import ArgumentParser
+import functools
 from pathlib import Path
 import time
 
@@ -27,8 +28,10 @@ SIMDIR = Path('./data/derivatives/simulated').resolve()
 ALPHA = 0.05  # p-value threshold
 N_PROC = 12  # number of parallel workers for surrogate generation
 N_PERM = 1000  # number of permutations for null models
+N_SIM = 1000  # number of simulations to run
 SEED = 1234  # reproducibility
 RUN_MORAN = False  # calculate Moran's I?
+SHUFFLE = True  # if we're shuffling sims instead of running paired (r = 0.15)
 
 
 def make_surrogates(data, parcellation, scale, spatnull):
@@ -127,9 +130,18 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
     # load simulated data
     alphadir = SIMDIR / alpha
     if parcellation == 'vertex':
-        x, y = simnulls.load_vertex_data(alphadir, sim=sim)
+        loadfn = functools.partial(simnulls.load_vertex_data, alphadir)
     else:
-        x, y = simnulls.load_parc_data(alphadir, parcellation, scale, sim=sim)
+        loadfn = functools.partial(simnulls.load_parc_data,
+                                   alphadir, parcellation, scale)
+    x, y = loadfn(sim=sim)
+
+    # if we're computing info on SHUFFLED data, get the appropriate random `y`
+    if SHUFFLE:
+        _, y = loadfn(sim=np.random.default_rng(1).permutation(N_SIM)[sim])
+        pvals_fn = pvals_fn.parent / f'{scale}_nulls_shuffle_{sim:04d}.csv'
+        perms_fn = pvals_fn.parent / f'{scale}_nulls_shuffle_{sim:04d}.csv'
+        moran_fn = pvals_fn.parent / f'{scale}_moran_shuffle_{sim:04d}.csv'
 
     # if we're going to run moran for this simulation, pre-load distmat
     if RUN_MORAN and not moran_fn.exists():
@@ -184,16 +196,21 @@ def main():
     args = get_parser()
 
     # reset some stuff
-    config = globals()
-    config['N_PERM'] = args['n_perm']
-    config['N_PROC'] = args['n_proc']
-    config['SEED'] = args['seed']
-    config['RUN_MORAN'] = args['run_moran']
+    for param in ('n_perm', 'n_proc', 'seed', 'run_moran', 'shuffle'):
+        globals()[param.upper()] = args[param]
 
     sims = range(args['start'], args['start'] + args['n_sim'])
 
-    print(f'N_PERM: {N_PERM}\tN_PROC: {N_PROC}\tSEED: {SEED}\t'
-          f'START: {sims.start}\tSTOP:{sims.stop}')
+    print(f'N_PERM: {N_PERM}',
+          f'N_PROC: {N_PROC}',
+          f'SEED: {SEED}',
+          f'RUN_MORAN: {RUN_MORAN}',
+          f'SHUFFLE: {SHUFFLE}',
+          f'START: {sims.start}',
+          f'STOP:{sims.stop}\n', sep='\n')
+
+    if args['show_params']:
+        return
 
     for spatnull in args['spatnull']:
         for alpha in args['alpha']:
@@ -209,10 +226,12 @@ def main():
 
 def get_parser():
     parser = ArgumentParser()
+    parser.add_argument('--show_params', default=False, action='store_true')
     parser.add_argument('--n_perm', default=N_PERM, type=int)
     parser.add_argument('--n_proc', default=N_PROC, type=int)
     parser.add_argument('--seed', default=SEED, type=int)
     parser.add_argument('--run_moran', default=False, action='store_true')
+    parser.add_argument('--shuffle', default=False, action='store_true')
     parser.add_argument('--spatnull', choices=simnulls.SPATNULLS,
                         default=simnulls.SPATNULLS, nargs='+')
     parser.add_argument('--alpha', choices=simnulls.ALPHAS,

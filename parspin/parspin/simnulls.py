@@ -170,7 +170,15 @@ def load_vertex_data(alphadir, sim=None, n_sim=MAX_NSIM):
 
     if n_sim > MAX_NSIM:
         raise ValueError(f'Value for n_sim cannot exceed {MAX_NSIM}')
-    sims = range(n_sim) if sim is None else range(sim, sim + 1)
+
+    if sim is None:
+        sims = range(n_sim)
+    elif np.issubdtype(sim, np.integer):
+        sims = range(sim, sim + 1)
+    elif hasattr(sim, '__iter__'):
+        sims = sim
+    else:
+        raise ValueError('Provided `sim` must be int or array-like')
 
     # load data for provided `parcellation` and `scale`
     ddir = utils.pathify(alphadir) / 'sim'

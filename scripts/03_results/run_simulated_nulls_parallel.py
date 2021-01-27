@@ -28,8 +28,9 @@ SIMDIR = Path('./data/derivatives/simulated').resolve()
 ALPHA = 0.05  # p-value threshold
 N_PROC = 24  # number of parallel workers for surrogate generation
 N_PERM = 1000  # number of permutations for null models
-SEED = 1234  # reproducibility
 N_SIM = 1000  # number of simulations to run
+SEED = 1234  # reproducibility
+SHUFFLE = True  # if we're shuffling sims instead of running paired (r = 0.15)
 
 
 def make_surrogates(data, parcellation, scale, spatnull):
@@ -148,6 +149,10 @@ def run_null(parcellation, scale, spatnull, alpha):
                 / f'{scale}_nulls.csv')
     perms_fn = pvals_fn.parent / f'{scale}_perms.csv'
 
+    if SHUFFLE:
+        pvals_fn = pvals_fn.parent / f'{scale}_nulls_shuffle.csv'
+        perms_fn = perms_fn.parent / f'{scale}_nulls_shuffle.csv'
+
     if pvals_fn.exists() and perms_fn.exists():
         return
 
@@ -158,6 +163,10 @@ def run_null(parcellation, scale, spatnull, alpha):
     else:
         x, y = simnulls.load_parc_data(alphadir, parcellation, scale,
                                        n_sim=N_SIM)
+
+    # if we're computing info on SHUFFLED data, get the appropriate random `y`
+    if SHUFFLE:
+        y = _get_ysim(y, np.random.default_rng(1).permutation(N_SIM))
 
     # calculate the null p-values
     if spatnull == 'naive-para':
@@ -211,13 +220,17 @@ def main():
     args = get_parser()
 
     # reset some stuff
-    config = globals()
-    config['N_PERM'] = args['n_perm']
-    config['N_PROC'] = args['n_proc']
-    config['SEED'] = args['seed']
-    config['N_SIM'] = args['n_sim']
+    for param in ('n_perm', 'n_proc', 'seed', 'n_sim', 'shuffle'):
+        globals()[param.upper()] = args[param]
 
-    print(f'N_PERM: {N_PERM}\tN_PROC: {N_PROC}\tSEED: {SEED}\tN_SIM: {N_SIM}')
+    print(f'N_PERM: {N_PERM}',
+          f'N_PROC: {N_PROC}',
+          f'SEED: {SEED}',
+          f'SHUFFLE: {SHUFFLE}',
+          f'N_SIM: {N_SIM}\n', sep='\n')
+
+    if args['show_params']:
+        return
 
     # everyone loves a four-level-deep nested for-loop :man_facepalming:
     for spatnull in args['spatnull']:
@@ -231,9 +244,11 @@ def main():
 
 def get_parser():
     parser = ArgumentParser()
+    parser.add_argument('--show_params', default=False, action='store_true')
     parser.add_argument('--n_perm', default=N_PERM, type=int)
     parser.add_argument('--n_proc', default=N_PROC, type=int)
     parser.add_argument('--seed', default=SEED, type=int)
+    parser.add_argument('--shuffle', default=False, action='store_true')
     parser.add_argument('--spatnull', choices=simnulls.SPATNULLS,
                         default=simnulls.SPATNULLS, nargs='+')
     parser.add_argument('--alpha', choices=simnulls.ALPHAS,
