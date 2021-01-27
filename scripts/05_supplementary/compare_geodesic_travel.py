@@ -21,6 +21,7 @@ plt.rcParams['font.size'] = 28.0
 
 SEED = 1234
 N_SURROGATES = 1000
+N_PROC = 12
 ROIDIR = Path('./data/raw/rois').resolve()
 HCPDIR = Path('./data/derivatives/hcp').resolve()
 DISTDIR = Path('./data/derivatives/geodesic')
@@ -31,6 +32,38 @@ METHODS = [
     'burt2020',
     'moran'
 ]
+
+
+def get_distcorr_stats(dist, seed=SEED):
+    """
+    Gets statistics from distribution of correlations `corr`
+
+    Uses r-to-z transform (and inverse) to compute stats on z-transformed data
+
+    Parameters
+    ----------
+    dist : array_like
+        Distribution of correlations (r)
+    seed : int, optional
+        Seed for random generation of bootstraps
+
+    Returns
+    -------
+    mean : float
+        Average correlation of `dist`
+    ci : tuple-of-float
+        (2.5%, 97.5%) confidence intervals on `mean` correlation
+    """
+
+    dist_z = np.arctanh(dist)
+    rs = np.random.default_rng(seed)
+    dist_ci = [
+        rs.choice(dist_z, size=len(dist_z)).mean() for _ in range(10000)
+    ]
+    ci = np.tanh(np.percentile(dist_ci, [2.5, 97.5]))
+    mean = np.tanh(dist_z.mean())
+
+    return (mean, tuple(ci))
 
 
 if __name__ == "__main__":
@@ -58,13 +91,13 @@ if __name__ == "__main__":
                                                               medial=med,
                                                               inverse=False):
                         if method == 'burt2018':
-                            surr = np.row_stack([
-                                burt.make_surrogate(dist, hd, seed=n)
-                                for n in range(N_SURROGATES)
-                            ])
+                            surr = burt.batch_surrogates(dist, hd, seed=SEED,
+                                                         n_surr=N_SURROGATES,
+                                                         n_jobs=N_PROC).T
                         elif method == 'burt2020':
-                            base = Base(hd, dist, resample=True, seed=SEED)
-                            surr = base(N_SURROGATES)
+                            base = Base(hd, dist, resample=True, seed=SEED,
+                                        n_jobs=N_PROC)
+                            surr = base(N_SURROGATES, 50)
                         elif method == 'moran':
                             np.fill_diagonal(dist, 1)
                             dist **= -1
@@ -124,3 +157,14 @@ if __name__ == "__main__":
             fname.parent.mkdir(exist_ok=True)
             fig.savefig(fname, transparent=True, bbox_inches='tight')
             plt.close(fig=fig)
+
+    burt2018, burt2020, moran = [], [], []
+    for method, corrs in zip(METHODS, [burt2018, burt2020, moran]):
+        for name, annotations in parcellations.items():
+            for scale, annot in annotations.items():
+                corrs.append(
+                    np.loadtxt(OUTDIR / name / method / f'{scale}.csv')
+                )
+        corrs = np.hstack(corrs)
+        mean, (lo, hi) = get_distcorr_stats(corrs)
+        print(f'{method}: {mean:.4f} [{lo:.4f}--{hi:.4f}]')
