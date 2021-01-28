@@ -151,7 +151,7 @@ def run_null(parcellation, scale, spatnull, alpha):
 
     if SHUFFLE:
         pvals_fn = pvals_fn.parent / f'{scale}_nulls_shuffle.csv'
-        perms_fn = perms_fn.parent / f'{scale}_nulls_shuffle.csv'
+        perms_fn = perms_fn.parent / f'{scale}_perms_shuffle.csv'
 
     if pvals_fn.exists() and perms_fn.exists():
         return
@@ -227,7 +227,9 @@ def main():
           f'N_PROC: {N_PROC}',
           f'SEED: {SEED}',
           f'SHUFFLE: {SHUFFLE}',
-          f'N_SIM: {N_SIM}\n', sep='\n')
+          f'N_SIM: {N_SIM}',
+          f'SPATNULLS: {args["spatnull"]}',
+          f'ALPHAS: {args["alpha"]}\n', sep='\n')
 
     if args['show_params']:
         return
@@ -253,7 +255,6 @@ def get_parser():
                         default=simnulls.SPATNULLS, nargs='+')
     parser.add_argument('--alpha', choices=simnulls.ALPHAS,
                         default=simnulls.ALPHAS, nargs='+')
-    parser.add_argument('start', type=int, default=0, nargs='?')
     parser.add_argument('n_sim', type=int, default=N_SIM, nargs='?')
     return vars(parser.parse_args())
 

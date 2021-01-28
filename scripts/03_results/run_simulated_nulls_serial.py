@@ -140,7 +140,7 @@ def run_null(parcellation, scale, spatnull, alpha, sim):
     if SHUFFLE:
         _, y = loadfn(sim=np.random.default_rng(1).permutation(N_SIM)[sim])
         pvals_fn = pvals_fn.parent / f'{scale}_nulls_shuffle_{sim:04d}.csv'
-        perms_fn = pvals_fn.parent / f'{scale}_nulls_shuffle_{sim:04d}.csv'
+        perms_fn = pvals_fn.parent / f'{scale}_perms_shuffle_{sim:04d}.csv'
         moran_fn = pvals_fn.parent / f'{scale}_moran_shuffle_{sim:04d}.csv'
 
     # if we're going to run moran for this simulation, pre-load distmat
