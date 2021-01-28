@@ -207,7 +207,7 @@ def main():
           f'RUN_MORAN: {RUN_MORAN}',
           f'SHUFFLE: {SHUFFLE}',
           f'START: {sims.start}',
-          f'STOP:{sims.stop}\n', sep='\n')
+          f'STOP: {sims.stop}\n', sep='\n')
 
     if args['show_params']:
         return
