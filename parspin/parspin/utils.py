@@ -8,6 +8,7 @@ from matplotlib.colors import LinearSegmentedColormap
 import nibabel as nib
 import numpy as np
 from scipy import ndimage
+import seaborn as sns
 import tqdm
 
 from netneurotools import datasets as nndata
@@ -86,6 +87,17 @@ DROP = [  # regions that should always be dropped from analyses
     'lh_Background+FreeSurfer_Defined_Medial_Wall',
     'rh_Background+FreeSurfer_Defined_Medial_Wall',
 ]
+
+
+def rgb255(x):
+    return np.around(np.asarray(x) * 255)
+
+
+REDS = rgb255(sns.color_palette('Reds', 7, desat=0.7)[-5:])
+BLUES = rgb255(sns.color_palette('Blues', 4, desat=0.5)[-3:])
+PURPLES = rgb255(sns.color_palette('Purples', 5, desat=0.8))[[2, 4]]
+SPATHUES = list(np.r_[PURPLES, REDS, BLUES] / 255)
+PARCHUES = list(np.array([[26, 146, 0], [222, 57, 90], [131, 131, 131]]) / 255)
 
 
 def pathify(path):

@@ -10,8 +10,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from parspin.plotting import savefig
 from parspin.simnulls import SPATNULLS
-from parspin.utils import pathify, PARCHUES, SPATHUES
+from parspin.utils import PARCHUES, SPATHUES
 
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.sans-serif'] = ['Myriad Pro']
@@ -29,14 +30,6 @@ REPLACE = {
     'atl-cammoun2012': 'cammoun',
     'atl-schaefer2018': 'schaefer'
 }
-
-
-def savefig(fig, fname):
-    fname = pathify(fname)
-    if not fname.parent.exists():
-        fname.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(fname, bbox_inches='tight', transparent=True)
-    plt.close(fig=fig)
 
 
 def remove_caps(ax):

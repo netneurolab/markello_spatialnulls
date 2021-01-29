@@ -1,25 +1,39 @@
 # -*- coding: utf-8 -*-
 """
-Script for running nulls on simulations SERIALLY (n.b., parallelization may be
-done at the level of each null method, but simulations are run individually)
+Script for assessing how the number of nulls used to generate a p-value
+influences the p-value
 """
 
 from collections import defaultdict
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 from netneurotools import stats as nnstats
 from parspin import simnulls, utils as putils
+from parspin.plotting import savefig
+
+plt.rcParams['svg.fonttype'] = 'none'
+plt.rcParams['font.sans-serif'] = ['Myriad Pro']
+plt.rcParams['font.size'] = 28.0
 
 ROIDIR = Path('./data/raw/rois').resolve()
 SIMDIR = Path('./data/derivatives/simulated').resolve()
 OUTDIR = Path('./data/derivatives/supplementary/comp_nnulls')
+FIGDIR = Path('./figures/supplementary/comp_nnulls')
 
 SEED = 1234  # reproducibility
 SIM = 9999  # which simulation was used to generate 10000 nulls
 N_PVALS = 1000  # how many repeated draws should be done to calculate pvals
+PLOTS = (
+    ('vertex', 'fsaverage5'),
+    ('atl-cammoun2012', 'scale500'),
+    ('atl-schaefer2018', '1000Parcels7Networks')
+)
+PARCS, SCALES = zip(*PLOTS)
 
 
 def pval_from_perms(actual, null):
@@ -75,7 +89,7 @@ def pval_by_subsets(parcellation, scale, spatnull, alpha):
         # arrays are nicer than lists
         pvals[subset] = np.asarray(pvals[subset])
 
-    df = pd.melt(pd.DataFrame(pvals), var_name='n_nulls', value_name='pval')
+    df = pd.melt(pd.DataFrame(pvals), var_name='n_nulls', value_name='d(pval)')
     # add single p-value generated from 10000 nulls
     df = df.assign(
         parcellation=parcellation,
@@ -84,12 +98,25 @@ def pval_by_subsets(parcellation, scale, spatnull, alpha):
         alpha=alpha
     )
 
-    order = ['parcellation', 'scale', 'spatnull', 'alpha', 'n_nulls', 'pval']
-    return df[order]
+    return df[
+        'parcellation', 'scale', 'spatnull', 'alpha', 'n_nulls', 'd(pval)'
+    ]
 
 
-def main():
+def run_analysis():
+    """ Runs p-value x n_nulls analysis
+
+    Returns
+    -------
+    pvals : pd.DataFrame
+        Data examining p-values based on number of nulls used
+    """
+
     OUTDIR.mkdir(parents=True, exist_ok=True)
+    fn = OUTDIR / 'nnulls_summary.csv'
+    if fn.exists():
+        return pd.read_csv(fn)
+
     subsets = []
     parcellations = putils.get_cammoun_schaefer(data_dir=ROIDIR)
     for spatnull in simnulls.SPATNULLS:
@@ -105,7 +132,18 @@ def main():
                     )
     subsets = pd.concat(subsets, ignore_index=True, sort=True)
     subsets.to_csv(OUTDIR / 'nnulls_summary.csv', index=False)
+    return subsets
 
 
 if __name__ == "__main__":
-    main()
+    data = run_analysis()
+    palette = dict(zip(simnulls.SPATNULLS, putils.SPATHUES))
+    for parc, scale in PLOTS:
+        plotdata = data.query(f'parcellation == "{parc}" & scale == "{scale}"')
+        fg = sns.relplot(x='n_nulls', y='d(pval)', hue='spatnull',
+                         col='alpha', data=plotdata, kind='line',
+                         palette=palette, ci=95)
+        fg.set_titles('{col_name}')
+        fg.axes[0, 0].set_xscale('log')
+        fg.set(xlim=(75, 6000))
+        savefig(fg.fig, FIGDIR / f'{scale}.svg')

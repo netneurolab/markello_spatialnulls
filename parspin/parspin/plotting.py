@@ -102,3 +102,22 @@ def save_brainmap(data, fname, lh=None, rh=None, **kwargs):
     fig.close()
 
     return fname
+
+
+def savefig(fig, fname):
+    """
+    Saves `fig` to `fname`, creating parent directories if necessary
+
+    Parameters
+    ----------
+    fig : matplotlib.pyplot.Figure
+        Figure object to be saved
+    fname : str or os.PathLike
+        Filepath to where `fig` should be saved
+    """
+
+    fname = pathify(fname)
+    if not fname.parent.exists():
+        fname.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(fname, bbox_inches='tight', transparent=True)
+    plt.close(fig=fig)
