@@ -31,6 +31,7 @@ N_REPEAT = 5
 SEED = 1234
 USE_CACHED = False
 PARCS = (
+    ('vertex', 'fsaverage5'),
     ('atl-cammoun2012', 'scale500'),
     ('atl-schaefer2018', '1000Parcels7Networks')
 )
@@ -237,7 +238,9 @@ def make_surrogates(data, parcellation, scale, spatnull, fn=None):
     for n, hemi in enumerate(('lh', 'rh')):
         dist = get_distmat(hemi, parcellation, scale, fn=fn)
         try:
-            idx = [n for n, f in enumerate(data.index)if f.startswith(hemi)]
+            idx = np.asarray([
+                n for n, f in enumerate(data.index)if f.startswith(hemi)
+            ])
             hdata = np.squeeze(np.asarray(data.iloc[idx]))
         except AttributeError:
             idx = np.arange(n * (len(data) // 2), (n + 1) * (len(data) // 2))
@@ -271,6 +274,24 @@ def make_surrogates(data, parcellation, scale, spatnull, fn=None):
     return surrogates
 
 
+def output_exists(data, parcellation, scale, spatnull, repeat):
+    """
+    Checks whether given combination of inputs already exists in `data`
+
+    Returns
+    -------
+    exits : bool
+        Whether outputs have already been run (True) or not (False)
+    """
+
+    if not isinstance(data, pd.DataFrame):
+        data = pd.DataFrame(data)
+    present = data.query(f'parcellation == "{parcellation}" '
+                         f'& scale == "{scale}" '
+                         f'& spatnull == "{spatnull}"')
+    return len(present) > (repeat)
+
+
 def main():
     # limit multi-threading; NO parallelization
     threadpoolctl.threadpool_limits(limits=1)
@@ -278,14 +299,14 @@ def main():
     fn = OUTDIR / ('cached.csv' if USE_CACHED else 'uncached.csv')
     fn.parent.mkdir(exist_ok=True, parents=True)
 
-    data = []
+    data = pd.read_csv(fn).to_dict('records') if fn.exists() else []
     for spatnull in simnulls.SPATNULLS:
-        if spatnull in simnulls.VERTEXWISE:
-            for repeat in range(N_REPEAT):
-                data.append(get_runtime('vertex', 'fsaverage5', spatnull))
-                pd.DataFrame(data).to_csv(fn, index=False)
         for parc, scale in PARCS:
+            if parc == "vertex" and spatnull not in simnulls.VERTEXWISE:
+                continue
             for repeat in range(N_REPEAT):
+                if output_exists(data, parc, scale, spatnull, repeat):
+                    continue
                 data.append(get_runtime(parc, scale, spatnull))
                 pd.DataFrame(data).to_csv(fn, index=False)
 
