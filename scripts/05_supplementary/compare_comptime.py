@@ -29,7 +29,7 @@ N_PROC = 1
 N_PERM = 1000
 N_REPEAT = 5
 SEED = 1234
-USE_CACHED = False
+USE_CACHED = True
 PARCS = (
     ('vertex', 'fsaverage5'),
     ('atl-cammoun2012', 'scale500'),
@@ -80,6 +80,7 @@ def get_runtime(parcellation, scale, spatnull):
     elif spatnull == 'hungarian':
         nulls = hungarian(y, parcellation, scale, fn=fn)
     elif spatnull == 'cornblath':
+        fn = SPDIR / 'vertex' / 'vazquez-rodriguez' / 'fsaverage5_spins.csv'
         nulls = cornblath(y, parcellation, scale, fn=fn)
     elif spatnull == 'baum':
         nulls = baum(y, parcellation, scale, fn=fn)
@@ -195,12 +196,8 @@ def get_distmat(hemi, parcellation, scale, fn=None):
         raise ValueError(f'Invalid hemishere designation {hemi}')
 
     if USE_CACHED and fn is not None:
-        fn = DISTDIR / parcellation / 'medial' / f'{scale}_{hemi}_dist.csv'
-        npy = fn.with_suffix('.npy')
-        if npy.exists():
-            dist = np.load(npy, allow_pickle=False, mmap_mode='c')
-        else:
-            dist = np.loadtxt(fn, delimiter=',')
+        fn = DISTDIR / parcellation / 'nomedial' / f'{scale}_{hemi}_dist.npy'
+        dist = np.load(fn, allow_pickle=False, mmap_mode='c')
     else:
         surf = nndata.fetch_fsaverage('fsaverage5', data_dir=ROIDIR)['pial']
         subj, spath = nnsurf.check_fs_subjid('fsaverage5')
@@ -253,12 +250,12 @@ def make_surrogates(data, parcellation, scale, spatnull, fn=None):
         hdata, dist, idx = hdata[mask], dist[np.ix_(mask, mask)], idx[mask]
 
         if spatnull == 'burt2018':
-            # Box-Cox transformation requires positive data :man_facepalming:
+            # Box-Cox transformation requires positive data
             hdata += np.abs(dmin) + 0.1
             surrogates[idx] = \
                 burt.batch_surrogates(dist, hdata, n_surr=N_PERM, seed=SEED)
         elif spatnull == 'burt2020':
-            if parcellation == 'vertex':  # memmap is required for this shit
+            if parcellation == 'vertex':
                 index = np.argsort(dist, axis=-1)
                 dist = np.sort(dist, axis=-1)
                 surrogates[idx] = \
@@ -267,6 +264,9 @@ def make_surrogates(data, parcellation, scale, spatnull, fn=None):
                 surrogates[idx] = \
                     mapgen.Base(hdata, dist, seed=SEED)(N_PERM, 50).T
         elif spatnull == 'moran':
+            dist = dist.astype('float64')
+            np.fill_diagonal(dist, 1)
+            dist **= -1
             mrs = moran.MoranRandomization(joint=True, n_rep=N_PERM,
                                            tol=1e-6, random_state=SEED)
             surrogates[idx] = mrs.fit(dist).randomize(hdata).T
@@ -283,6 +283,9 @@ def output_exists(data, parcellation, scale, spatnull, repeat):
     exits : bool
         Whether outputs have already been run (True) or not (False)
     """
+
+    if len(data) == 0:
+        return False
 
     if not isinstance(data, pd.DataFrame):
         data = pd.DataFrame(data)
