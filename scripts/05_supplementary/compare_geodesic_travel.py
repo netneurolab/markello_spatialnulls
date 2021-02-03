@@ -117,28 +117,31 @@ if __name__ == "__main__":
                 figdir.mkdir(exist_ok=True, parents=True)
 
                 # brain maps of example brains
+                vmin, vmax = np.percentile(surrs, [2.5, 97.5])
                 for n, medial in enumerate(['medial', 'nomedial']):
-                    vmin, vmax = np.percentile(surrs, [2.5, 97.5])
-                    fname = figdir / medial / f'{scale}.png'
-                    fname.parent.mkdir(exist_ok=True)
-                    plotting.save_brainmap(surrs[n][:, 0], fname,
+                    fn = figdir / medial / f'{scale}.png'
+                    if fn.exists():
+                        continue
+                    plotting.save_brainmap(surrs[n][:, 0], fn,
                                            annot.lh, annot.rh,
                                            subject_id='fsaverage5',
                                            colormap='coolwarm', colorbar=False,
-                                           vmin=vmin, vmax=vmax)
+                                           vmin=vmin, vmax=vmax,
+                                           views=['lat', 'med'])
 
                 # scatter plot of example brains
                 fig, ax = plt.subplots(1, 1)
-                ax.scatter(surrs[0][:, 0], surrs[1][:, 0], edgecolor='white',
-                           s=75, facecolor=np.array([112, 146, 255]) / 255)
+                ax.scatter(surrs[0][:, 0], surrs[1][:, 0], s=75,
+                           edgecolor=np.array([60, 60, 60]) / 255,
+                           facecolor=np.array([223, 121, 122]) / 255)
                 for side in ['right', 'top']:
                     ax.spines[side].set_visible(False)
                 ax.set(xlabel='with medial wall', ylabel='without medial wall')
                 l, h = ax.get_xlim()
-                ax.plot([l, h], [l, h], c='gray')
+                ax.plot([l, h], [l, h], zorder=0)
                 ax.figure.savefig(figdir / f'{scale}.svg', bbox_inches='tight',
                                   transparent=True)
-                plt.close(fig=ax.figure)
+                plt.close(fig=fig)
 
                 # save correlations b/w surrogates
                 corrs = nnstats.efficient_pearsonr(*surrs)[0]
@@ -150,7 +153,7 @@ if __name__ == "__main__":
             fig, ax = plt.subplots(1, 1)
             for method in METHODS:
                 corrs = np.loadtxt(OUTDIR / name / method / f'{scale}.csv')
-                sns.distplot(corrs, label=method)
+                ax = sns.kdeplot(corrs, label=method, shade=True, ax=ax)
             sns.despine(ax=ax, left=True)
             ax.set(xlim=(0, ax.get_xlim()[1]), xticks=[0, 0.5, 1], yticks=[])
             fname = FIGDIR / name / 'correlations' / f'{scale}.svg'
