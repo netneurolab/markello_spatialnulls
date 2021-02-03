@@ -15,7 +15,7 @@ from scipy import ndimage, stats
 from brainspace.null_models import moran
 from netneurotools import datasets as nndata, freesurfer as nnsurf
 from parspin.partitions import NET_OPTIONS, NET_CODES
-from parspin import utils as putils
+from parspin import simnulls, utils as putils
 
 ROIDIR = Path('./data/raw/rois').resolve()
 HCPDIR = Path('./data/derivatives/hcp').resolve()
@@ -23,6 +23,7 @@ SPDIR = Path('./data/derivatives/spins').resolve()
 DISTDIR = Path('./data/derivatives/geodesic').resolve()
 SURRDIR = Path('./data/derivatives/surrogates').resolve()
 SPINTYPES = [
+    'naive-para',
     'naive-nonpara',
     'vazquez-rodriguez',
     'vasa',
@@ -35,6 +36,14 @@ SPINTYPES = [
 ]
 # alpha (FWE) level for assessing significance
 ALPHA = 0.05
+# percent of parcels in a given network that can be dropped (due to e.g.,
+# medial wall rotation) before that spin is discarded. for example, if
+# PCTDROPTHRESH = 1 then _all_ parcels must be missing in a given network
+# before that spin will be discarded, whereas if PCTDROPTHRESH = 0.25 then only
+# >25% of the parcels in a given network need to be missing for that spin to be
+# discarded
+# n.b., this should only impact the 'baum' and 'cornblath' methods!
+PCTDROPTHRESH = 0.75
 
 
 def _get_netmeans(data, networks, nets=None):
@@ -55,13 +64,19 @@ def _get_netmeans(data, networks, nets=None):
     """
 
     data, networks = np.asarray(data), np.asarray(networks)
+    nparc = np.bincount(networks)[1:]
 
     if nets is None:
         nets = np.trim_zeros(np.unique(networks))
 
-    # don't include NaN data in the averaging process; this amounts to nanmean
-    # but is a bit faster than doing it explicitly in a loop
     mask = np.logical_not(np.isnan(data))
+
+    # if there are too many nans in a given network, don't use this spin
+    pct_dropped = 1 - (ndimage.sum(mask, networks, nets) / nparc)
+    if np.any(pct_dropped >= PCTDROPTHRESH):
+        return np.full(len(nets), np.nan)
+
+    # otherwise, compute the average T1w/T2w within each network
     data, networks = data[mask], networks[mask]
     with np.errstate(invalid='ignore'):
         permnets = ndimage.mean(data, networks, nets)
@@ -100,17 +115,19 @@ def gen_permnets(data, networks, spins, fname):
 
     # if we were given a file for the resampling array, load it
     if isinstance(spins, (str, os.PathLike)):
-        spins = np.loadtxt(spins, delimiter=',', dtype='int32')
+        spins = simnulls.load_spins(spins, n_perm=10000)
 
     nets = np.trim_zeros(np.unique(networks))
-    permnets = np.zeros((spins.shape[-1], len(nets)))
+    permnets = np.full((spins.shape[-1], len(nets)), np.nan)
     for n, spin in enumerate(spins.T):
         msg = f'{n:>5}/{spins.shape[-1]}'
         print(msg, end='\b' * len(msg), flush=True)
-        # this will only have False values when spintype == 'baum'
-        mask = spin != -1
+
+        spindata = data[spin]
+        spindata[spin == -1] = np.nan
+
         # get the means of each network for each spin
-        permnets[n] = _get_netmeans(data[spin][mask], networks[mask], nets)
+        permnets[n] = _get_netmeans(spindata, networks, nets)
 
     print(' ' * len(msg) + '\b' * len(msg), end='', flush=True)
     putils.save_dir(fname, permnets)
@@ -265,9 +282,22 @@ def run_null(netclass, parc, scale, spintype):
 
     # run the damn thing
     print(f'Running {spintype:>9} spins for {scale}: ', end='', flush=True)
-    out = HCPDIR / parc / 'nulls' / netclass / spintype / f'{scale}_nulls.csv'
+    thresh = f'thresh_{PCTDROPTHRESH * 100:.0f}' if PCTDROPTHRESH != 1 else ''
+    out = (HCPDIR / parc / 'nulls' / netclass / spintype
+           / thresh / f'{scale}_nulls.csv')
     if out.exists():
         permnets = np.loadtxt(out, delimiter=',')
+    elif spintype == 'naive-para':
+        data['myelin'] = stats.zscore(data['myelin'], ddof=1)
+        data = data.query('networks != 0')
+        pvals = np.asarray([
+            stats.ttest_1samp(data.loc[idx, 'myelin'], 0)[-1]
+            for net, idx in data.groupby('networks').groups.items()
+        ])
+        zscores = np.asarray(data.groupby('networks').mean()['myelin'])
+        # print networks with pvals below threshold
+        print(', '.join([f'{z:.2f}' if pvals[n] < ALPHA else '0.00'
+                        for n, z in enumerate(zscores)]))
     elif spintype == 'cornblath':
         # even though we're working with parcellated data we need to project
         # that to the surface + spin the vertices, so let's load our
@@ -279,8 +309,7 @@ def run_null(netclass, parc, scale, spintype):
         annotations = fetcher('fsaverage5', data_dir=ROIDIR)[scale]
 
         # pre-load the spins for this function (assumes `spins` is array)
-        print('Pre-loading spins...', end='\b' * 20, flush=True)
-        spins = np.loadtxt(spins, delimiter=',', dtype='int32')
+        spins = simnulls.load_spins(spins, n_perm=10000)
         # generate "spun" data; permdata will be an (R, T, n_rotate) array
         # where `R` is regions and `T` is 1 (myelination)
         permdata = nnsurf.spin_data(np.asarray(data['myelin']),
@@ -322,8 +351,9 @@ def run_null(netclass, parc, scale, spintype):
                                 spins, out)
 
     # now get the real network averages and compare to the permuted values
-    real = _get_netmeans(data['myelin'], data['networks'])
-    zscores, pvals = get_fwe(real, permnets)
+    if spintype != 'naive-para':
+        real = _get_netmeans(data['myelin'], data['networks'])
+        zscores, pvals = get_fwe(real, permnets)
 
     out = pd.DataFrame(dict(
         parcellation=parc,
@@ -342,11 +372,10 @@ def main():
     parcellations = putils.get_cammoun_schaefer(data_dir=ROIDIR)
 
     # output dataframe
-    cols = [
+    data = pd.DataFrame(columns=[
         'parcellation', 'scale', 'spintype', 'netclass',
         'network', 'zscore', 'pval'
-    ]
-    data = pd.DataFrame(columns=cols)
+    ])
 
     # use both Yeo + VEK network groupings
     for netclass in ['yeo', 'vek']:
@@ -359,27 +388,9 @@ def main():
                                                 scale, spintype),
                                        ignore_index=True)
 
-                # parametric null; use mean + p-value from t-statistic
-                raw = load_data(netclass, parcellation, scale)
-                raw['myelin'] = stats.zscore(raw['myelin'], ddof=1)
-                raw = raw.query('networks != 0')
-                pvals = [
-                    stats.ttest_1samp(raw.loc[idx, 'myelin'], 0)[-1]
-                    for net, idx in raw.groupby('networks').groups.items()
-                ]
-                # now add the parametric null to our giant summary dataframe
-                data = data.append(pd.DataFrame({
-                    'parcellation': parcellation,
-                    'scale': scale,
-                    'spintype': 'naive-para',
-                    'netclass': netclass,
-                    'network': list(NET_CODES[netclass].keys()),
-                    'zscore': raw.groupby('networks').mean()['myelin'],
-                    'pval': pvals
-                }), ignore_index=True)
-
     # save the output data !
-    data.to_csv(HCPDIR / 'summary.csv', index=False)
+    suff = f'_thresh{PCTDROPTHRESH * 100:.0f}' if PCTDROPTHRESH != 1 else ''
+    data.to_csv(HCPDIR / f'summary{suff}.csv', index=False)
 
 
 if __name__ == "__main__":
