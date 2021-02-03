@@ -5,6 +5,7 @@ Generates primary figures for HCP results
 
 from pathlib import Path
 
+from matplotlib.collections import LineCollection
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -52,6 +53,85 @@ VEKORDER = [
     'association cortex 1',
     'limbic regions'
 ]
+
+
+# https://stackoverflow.com/a/60098944/5216327
+def get_all_boundary_edges(bool_img):
+    """
+    Get a list of all edges
+    (where the value changes from 'True' to 'False') in the 2D image.
+    Return the list as indices of the image.
+    """
+    ij_boundary = []
+    ii, jj = np.nonzero(bool_img)
+    for i, j in zip(ii, jj):
+        # North
+        if j == bool_img.shape[1] - 1 or not bool_img[i, j + 1]:
+            ij_boundary.append(np.array([[i, j + 1],
+                                         [i + 1, j + 1]]))
+        # East
+        if i == bool_img.shape[0] - 1 or not bool_img[i + 1, j]:
+            ij_boundary.append(np.array([[i + 1, j],
+                                         [i + 1, j + 1]]))
+        # South
+        if j == 0 or not bool_img[i, j - 1]:
+            ij_boundary.append(np.array([[i, j],
+                                         [i + 1, j]]))
+        # West
+        if i == 0 or not bool_img[i - 1, j]:
+            ij_boundary.append(np.array([[i, j],
+                                         [i, j + 1]]))
+    if not ij_boundary:
+        return np.zeros((0, 2, 2))
+    else:
+        return np.array(ij_boundary)
+
+
+# https://stackoverflow.com/a/60098944/5216327
+def close_loop_boundary_edges(xy_boundary, clean=True):
+    """
+    Connect all edges defined by 'xy_boundary' to closed
+    boundary lines.
+    If not all edges are part of one surface return a list of closed
+    boundaries is returned (one for every object).
+    """
+
+    boundary_loop_list = []
+    while xy_boundary.size != 0:
+        # Current loop
+        xy_cl = [xy_boundary[0, 0], xy_boundary[0, 1]]  # Start with first edge
+        xy_boundary = np.delete(xy_boundary, 0, axis=0)
+
+        while xy_boundary.size != 0:
+            # Get next boundary edge (edge with common node)
+            ij = np.nonzero((xy_boundary == xy_cl[-1]).all(axis=2))
+            if ij[0].size > 0:
+                i = ij[0][0]
+                j = ij[1][0]
+            else:
+                xy_cl.append(xy_cl[0])
+                break
+
+            xy_cl.append(xy_boundary[i, (j + 1) % 2, :])
+            xy_boundary = np.delete(xy_boundary, i, axis=0)
+
+        xy_cl = np.array(xy_cl)
+
+        boundary_loop_list.append(xy_cl)
+
+    return boundary_loop_list
+
+
+# https://stackoverflow.com/a/60098944/5216327
+def plot_world_outlines(bool_img, ax=None, **kwargs):
+    if ax is None:
+        ax = plt.gca()
+
+    ij_boundary = get_all_boundary_edges(bool_img=bool_img)
+    xy_boundary = ij_boundary
+    xy_boundary = close_loop_boundary_edges(xy_boundary=xy_boundary)
+    cl = LineCollection(xy_boundary, **kwargs)
+    ax.add_collection(cl)
 
 
 def make_barplot(data, netorder, methods=None, fname=None, **kwargs):
@@ -108,6 +188,43 @@ def make_barplot(data, netorder, methods=None, fname=None, **kwargs):
         fname.parent.mkdir(exist_ok=True, parents=True)
         fig.savefig(fname, bbox_inches='tight', transparent=True)
         plt.close(fig=fig)
+
+    return fig
+
+
+def make_heatmap_outlines(data, order, fname=None, **kwargs):
+    defaults = dict(
+        cmap='coolwarm', vmin=-2.5, center=0, vmax=2.5, xticklabels=[],
+        yticklabels=[]
+    )
+    defaults.update(kwargs)
+    cbar_kws = dict(
+        ticks=[defaults['vmin'], defaults['center'], defaults['vmax']]
+    )
+
+    zscores = pd.pivot_table(data, values='zscore',
+                             columns='network',
+                             index=['parcellation', 'scale'])[order]
+    sig = pd.pivot_table(data, values='sig',
+                         columns='network',
+                         index=['parcellation', 'scale'])[order]
+    sig = np.asarray(sig, dtype=bool)
+
+    fig, ax = plt.subplots(1, 1)
+    ax = sns.heatmap(zscores, alpha=1.0, cbar_kws=cbar_kws, ax=ax, **defaults)
+    ax.set(ylim=(15.1, -0.1), xlim=(-0.1, 7.1), yticks=[], xticks=[],
+           ylabel='', xlabel='')
+    for col in range(sig.shape[1]):
+        mask = np.zeros_like(sig)
+        mask[:, col] = sig[:, col]
+        plot_world_outlines(mask.T, ax=ax, color='k', linewidth=2)
+    # ax.hlines(5, *ax.get_xlim(), color='w', linestyle='dashed', linewidth=2)
+
+    if fname is not None:
+        fname.parent.mkdir(exist_ok=True, parents=True)
+        fig.savefig(fname, bbox_inches='tight', transparent=True)
+        plt.close(fig=fig)
+        return
 
     return fig
 
@@ -230,3 +347,5 @@ if __name__ == "__main__":
                 kwargs = {'vmin': -7.5, 'vmax': 7.5}
             fname = FIGDIR / netclass / f'{method}.svg'
             make_heatmap(dparc, netorder, fname=fname, **kwargs)
+            fname = FIGDIR / netclass / 'outlines' / f'{method}.svg'
+            make_heatmap_outlines(dparc, netorder, fname=fname, **kwargs)
