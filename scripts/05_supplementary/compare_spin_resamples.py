@@ -78,7 +78,7 @@ def plot_full_heatmap(dist, fname):
 
     # plot the matrix
     fig, ax = plt.subplots(1, 1)
-    ax = sns.heatmap(all_dist, vmin=0, vmax=1, cmap='YlGnBu_r', ax=ax)
+    ax = sns.heatmap(all_dist, vmin=0, vmax=1, cmap='Purples_r', ax=ax)
     labels = ['vazquez-\nrodriguez', 'vasa', 'hungarian']
 
     # add some rectangles here to delineate the different centroid
@@ -116,7 +116,7 @@ def plot_reduced_heatmap(dist, fname):
     """
 
     fig, ax = plt.subplots(1, 1)
-    ax = sns.heatmap(avgs, vmin=0, vmax=1, cmap='YlGnBu_r', ax=ax)
+    ax = sns.heatmap(avgs, vmin=0, vmax=1, cmap='Purples_r', ax=ax)
     labels = ['vazquez-\nrodriguez', 'vasa', 'hungarian']
 
     # clean up and make the black outlines delineating the diff null models
