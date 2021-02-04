@@ -43,7 +43,7 @@ ALPHA = 0.05
 # >25% of the parcels in a given network need to be missing for that spin to be
 # discarded
 # n.b., this should only impact the 'baum' and 'cornblath' methods!
-PCTDROPTHRESH = 0.75
+PCTDROPTHRESH = 1
 
 
 def _get_netmeans(data, networks, nets=None):
@@ -282,9 +282,8 @@ def run_null(netclass, parc, scale, spintype):
 
     # run the damn thing
     print(f'Running {spintype:>9} spins for {scale}: ', end='', flush=True)
-    thresh = f'thresh_{PCTDROPTHRESH * 100:.0f}' if PCTDROPTHRESH != 1 else ''
     out = (HCPDIR / parc / 'nulls' / netclass / spintype
-           / thresh / f'{scale}_nulls.csv')
+           / f'thresh{PCTDROPTHRESH * 100:03.0f}' / f'{scale}_nulls.csv')
     if out.exists():
         permnets = np.loadtxt(out, delimiter=',')
     elif spintype == 'naive-para':
@@ -389,8 +388,8 @@ def main():
                                        ignore_index=True)
 
     # save the output data !
-    suff = f'_thresh{PCTDROPTHRESH * 100:.0f}' if PCTDROPTHRESH != 1 else ''
-    data.to_csv(HCPDIR / f'summary{suff}.csv', index=False)
+    data.to_csv(HCPDIR / f'summary_thresh{PCTDROPTHRESH * 100:03.0f}.csv',
+                index=False)
 
 
 if __name__ == "__main__":
