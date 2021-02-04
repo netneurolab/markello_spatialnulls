@@ -197,7 +197,7 @@ def get_distmat(hemi, parcellation, scale, fn=None):
 
     if USE_CACHED and fn is not None:
         fn = DISTDIR / parcellation / 'nomedial' / f'{scale}_{hemi}_dist.npy'
-        dist = np.load(fn, allow_pickle=False, mmap_mode='c')
+        dist = np.load(fn, allow_pickle=False, mmap_mode='c').astype('float32')
     else:
         surf = nndata.fetch_fsaverage('fsaverage5', data_dir=ROIDIR)['pial']
         subj, spath = nnsurf.check_fs_subjid('fsaverage5')
@@ -264,7 +264,7 @@ def make_surrogates(data, parcellation, scale, spatnull, fn=None):
                 surrogates[idx] = \
                     mapgen.Base(hdata, dist, seed=SEED)(N_PERM, 50).T
         elif spatnull == 'moran':
-            dist = dist.astype('float64')
+            dist = dist.astype('float64')  # required for some reason...
             np.fill_diagonal(dist, 1)
             dist **= -1
             mrs = moran.MoranRandomization(joint=True, n_rep=N_PERM,
