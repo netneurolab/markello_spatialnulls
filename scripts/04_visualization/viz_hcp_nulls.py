@@ -17,6 +17,7 @@ plt.rcParams['font.size'] = 28.0
 
 HCPDIR = Path('./data/derivatives/hcp').resolve()
 FIGDIR = Path('./figures/hcp').resolve()
+THRESH = 'thresh025'
 COLORS = np.array([
     np.array([0.7254902, 0.72941176, 0.73333333]),
     np.array([0.94117647, 0.40784314, 0.41176471])
@@ -176,7 +177,7 @@ def make_barplot(data, netorder, methods=None, fname=None, **kwargs):
         d = data.query(f'spintype == "{methods[n]}"')
         palette = COLORS[np.asarray(d['sig'], dtype='int')]
         # plot!
-        ax = sns.barplot('network', 'zscore', data=d,
+        ax = sns.barplot(x='network', y='zscore', data=d,
                          order=netorder, palette=palette, ax=ax)
         lab = '-\n'.join(methods[n].split('-'))
         ax.set(xlabel=lab, **defaults)
@@ -284,9 +285,10 @@ def make_heatmap(data, order, fname=None, **kwargs):
 
 
 if __name__ == "__main__":
+    FIGDIR = FIGDIR / THRESH
     FIGDIR.mkdir(parents=True, exist_ok=True)
 
-    data = pd.read_csv(HCPDIR / 'summary.csv')
+    data = pd.read_csv(HCPDIR / f'summary_{THRESH}.csv')
     data = data.assign(sig=data['pval'] < 0.05,
                        scale=pd.Categorical(data['scale'],
                                             data['scale'].unique(),

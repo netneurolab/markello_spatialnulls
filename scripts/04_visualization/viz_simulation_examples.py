@@ -51,9 +51,9 @@ if __name__ == "__main__":
 
         # now load one pair of correlated simulations and save
         for img in ('x', 'y'):
-            fn = FIGDIR / alpha / 'sim' / f'{img}_9999.png'
+            fn = FIGDIR / alpha / 'sim' / f'{img}_0000.png'
             if not fn.exists() or OVERWRITE:
-                img = nib.load(SIMDIR / alpha / 'sim' / f'{img}_9999.mgh')
+                img = nib.load(SIMDIR / alpha / 'sim' / f'{img}_0000.mgh')
                 data = np.squeeze(img.get_fdata())
                 data[data == 0] = np.nan
                 save_brainmap(data, fn, **OPTS)

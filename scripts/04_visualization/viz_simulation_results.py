@@ -10,8 +10,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from netneurotools import stats as nnstats
 from parspin.plotting import savefig
-from parspin.simnulls import SPATNULLS
+from parspin.simnulls import load_vertex_data, SPATNULLS
 from parspin.utils import PARCHUES, SPATHUES
 
 plt.rcParams['svg.fonttype'] = 'none'
@@ -146,3 +147,42 @@ if __name__ == "__main__":
         # remove caps on boxplot whiskers
         remove_caps(ax)
         savefig(ax.figure, FIGDIR / 'moran' / f'empirical_{alpha}.svg')
+
+    # plot P(p < 0.05)
+    data = pd.read_csv(SIMDIR / 'prob_summary.csv')
+    data = data.query(f'scale in {SCALES}')
+    # plot -log10(p) vs alpha
+    fg = sns.relplot(x='alpha', y='prob', hue='spatnull',
+                     palette=SPATHUES, linewidth=2.5,
+                     col='parcellation', kind='line', data=data)
+    fg.set_titles('{col_name}')
+    fg.set(xticklabels=[0.0, '', '', 1.5, '', '', 3.0],
+           xlabel='spatial autocorrelation',
+           ylabel='Prob(p < 0.05)',
+           ylim=(0, 1.0), yticks=[0, 0.25, 0.5, 0.75, 1.0])
+    xl = fg.axes[0, 0].get_xlim()
+    for ax in fg.axes.flat:
+        ax.hlines(0.05, *xl, linestyle='dashed', color='black',
+                  linewidth=1.0)
+    savefig(fg.fig, FIGDIR / 'prob' / 'prob_p05.svg')
+
+    # plot shuffled correlations FOR VERTEX ONLY
+    data = pd.DataFrame(columns=['alpha', 'corrs'])
+    alphas = ['alpha-0.0', 'alpha-1.0', 'alpha-2.0', 'alpha-3.0']
+    for alpha in alphas:
+        x, y = load_vertex_data(SIMDIR / alpha, n_sim=1000)
+        y = y[:, np.random.default_rng(1).permutation(1000)]
+        corrs = nnstats.efficient_pearsonr(x, y, nan_policy='omit')[0]
+        data = data.append(pd.DataFrame({'alpha': alpha, 'corrs': corrs}),
+                           ignore_index=True)
+    colors = np.asarray(sns.color_palette('Greens', 10, desat=0.5))
+    ax = sns.kdeplot(x='corrs', hue='alpha', data=data, legend=False,
+                     palette=list(colors[[2, 4, 6, 8]]), hue_order=alphas,
+                     clip=[-1, 1], linewidth=3.0)
+    ax.set(xlim=(-1.05, 1.05), xticks=np.arange(-1, 1.5, 0.5),
+           xticklabels=[-1, '', 0, '', 1],
+           ylim=(-.05, 14), yticks=[0, 7, 14],
+           xlabel='correlation (r) between\nrandom simulated maps',
+           ylabel='density')
+    sns.despine(ax=ax)
+    savefig(ax.figure, FIGDIR / 'prob' / 'vertex_corrs.svg')
