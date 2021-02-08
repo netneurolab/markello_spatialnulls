@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Tests computational time of different null methods
+Tests computational time of different null methods and plots outputs
 """
 
 from dataclasses import asdict, make_dataclass
 import time
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import threadpoolctl
 
 from brainsmash import mapgen
@@ -17,7 +19,16 @@ from netneurotools import (datasets as nndata,
                            freesurfer as nnsurf,
                            stats as nnstats)
 from parspin import burt, simnulls, surface
+from parspin.plotting import savefig
+from parspin.simnulls import SPATNULLS
+from parspin.utils import PARCHUES, SPATHUES
 
+plt.rcParams['svg.fonttype'] = 'none'
+plt.rcParams['font.sans-serif'] = ['Myriad Pro']
+
+DATADIR = Path('./data/derivatives/supplementary/comp_time').resolve()
+FIGDIR = Path('./figures/supplementary/comp_time').resolve()
+ORDER = ('vertex', 'atl-cammoun2012', 'atl-schaefer2018')
 ROIDIR = Path('./data/raw/rois').resolve()
 SPDIR = Path('./data/derivatives/spins').resolve()
 SIMDIR = Path('./data/derivatives/simulated').resolve()
@@ -25,7 +36,6 @@ DISTDIR = Path('./data/derivatives/geodesic').resolve()
 OUTDIR = Path('./data/derivatives/supplementary/comp_time').resolve()
 
 ALPHA = 'alpha-2.0'
-N_PROC = 1
 N_PERM = 1000
 N_REPEAT = 5
 SEED = 1234
@@ -210,7 +220,6 @@ def get_distmat(hemi, parcellation, scale, fn=None):
             medial_path = medial / f'{hemi}.Medial_wall.label'
             dist = surface.get_surface_distance(getattr(surf, hemi),
                                                 medial=medial_path,
-                                                n_proc=N_PROC,
                                                 use_wb=False,
                                                 verbose=True)
         else:
@@ -218,7 +227,6 @@ def get_distmat(hemi, parcellation, scale, fn=None):
             dist = surface.get_surface_distance(getattr(surf, hemi),
                                                 getattr(annot, hemi),
                                                 medial_labels=medial_labels,
-                                                n_proc=N_PROC,
                                                 use_wb=False,
                                                 verbose=True)
     return dist
@@ -295,13 +303,48 @@ def output_exists(data, parcellation, scale, spatnull, repeat):
     return len(present) > (repeat)
 
 
-def main():
+def make_stripplot(fn):
+    """
+    Makes stripplot of runtime for different spatial null models
+
+    Parameters
+    ----------
+    fn : {'cached.csv', 'uncached.csv'}
+        Filename to load runtime data from
+
+    Returns
+    -------
+    ax : matplotlib.pyplot.Axes
+        Axis with plot
+    """
+    data = pd.read_csv(DATADIR / fn)
+    fig, ax = plt.subplots(1, 1)
+    ax = sns.stripplot(x='runtime', y='spatnull', hue='parcellation',
+                       order=SPATNULLS, hue_order=ORDER, dodge=True, ax=ax,
+                       data=data, palette=PARCHUES)
+    ax.set_xscale('log')
+    xl = (10**-3, 10**5)
+    ax.hlines(np.arange(0.5, 9.5), *xl, linestyle='dashed', linewidth=0.5,
+              color=np.array([50, 50, 50]) / 255)
+    ax.set(xlim=xl, ylim=(9.5, -0.5))
+    yticklabels = ax.get_yticklabels()
+    for n, ytick in enumerate(yticklabels):
+        ytick.set_color(SPATHUES[n])
+    ax.set_yticklabels(yticklabels)
+    ax.legend_.set_visible(False)
+    sns.despine(ax=ax)
+
+    return ax
+
+
+def compute_all_runtimes():
     # limit multi-threading; NO parallelization
     threadpoolctl.threadpool_limits(limits=1)
     # output
     fn = OUTDIR / ('cached.csv' if USE_CACHED else 'uncached.csv')
     fn.parent.mkdir(exist_ok=True, parents=True)
 
+    cols = ['parcellation', 'scale', 'spatnull', 'runtime']
     data = pd.read_csv(fn).to_dict('records') if fn.exists() else []
     for spatnull in simnulls.SPATNULLS:
         for parc, scale in PARCS:
@@ -311,8 +354,14 @@ def main():
                 if output_exists(data, parc, scale, spatnull, repeat):
                     continue
                 data.append(get_runtime(parc, scale, spatnull))
-                pd.DataFrame(data).to_csv(fn, index=False)
+                pd.DataFrame(data)[cols].to_csv(fn, index=False)
+
+    return fn
 
 
 if __name__ == "__main__":
-    main()
+    for cache in (True, False):
+        globals()['USE_CACHED'] = cache
+        fn = compute_all_runtimes()
+        ax = make_stripplot(fn)
+        savefig(ax.figure, FIGDIR / f'{fn.name[:-4]}.svg')
