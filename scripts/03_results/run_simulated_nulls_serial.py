@@ -83,7 +83,7 @@ def make_surrogates(data, parcellation, scale, spatnull):
                 index = np.argsort(dist, axis=-1)
                 dist = np.sort(dist, axis=-1)
                 surrogates[idx] = \
-                    mapgen.Sampled(hdata, dist, index,
+                    mapgen.Sampled(hdata, dist, index, knn=len(hdata),
                                    seed=SEED, n_jobs=N_PROC)(N_PERM).T
                 Path(fn).unlink()
             else:
