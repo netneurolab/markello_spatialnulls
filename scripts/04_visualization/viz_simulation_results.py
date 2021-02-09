@@ -152,9 +152,9 @@ if __name__ == "__main__":
     data = pd.read_csv(SIMDIR / 'prob_summary.csv')
     data = data.query(f'scale in {SCALES}')
     # plot -log10(p) vs alpha
-    fg = sns.relplot(x='alpha', y='prob', hue='spatnull',
-                     palette=SPATHUES, linewidth=2.5,
-                     col='parcellation', kind='line', data=data)
+    fg = sns.relplot(x='alpha', y='prob', hue='spatnull', col='parcellation',
+                     data=data, hue_order=SPATNULLS, palette=SPATHUES,
+                     kind='line', linewidth=2.5)
     fg.set_titles('{col_name}')
     fg.set(xticklabels=[0.0, '', '', 1.5, '', '', 3.0],
            xlabel='spatial autocorrelation',
