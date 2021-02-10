@@ -288,7 +288,7 @@ if __name__ == "__main__":
     FIGDIR = FIGDIR / THRESH
     FIGDIR.mkdir(parents=True, exist_ok=True)
 
-    data = pd.read_csv(HCPDIR / f'summary_{THRESH}.csv')
+    data = pd.read_csv(HCPDIR / f'summary_{THRESH}.csv.gz')
     data = data.assign(sig=data['pval'] < 0.05,
                        scale=pd.Categorical(data['scale'],
                                             data['scale'].unique(),

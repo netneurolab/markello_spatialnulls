@@ -148,10 +148,10 @@ def main():
 
     col = ['parcellation', 'scale', 'spatnull', 'alpha', 'sim', 'corr', 'pval']
     pvals = pd.concat(pvals, ignore_index=True)[col]
-    pvals.to_csv(SIMDIR / 'pval_summary.csv', index=False)
+    pvals.to_csv(SIMDIR / 'pval_summary.csv.gz', index=False)
 
     prob = pd.DataFrame(prob)[col[:4] + ['prob']]
-    prob.to_csv(SIMDIR / 'prob_summary.csv', index=False)
+    prob.to_csv(SIMDIR / 'prob_summary.csv.gz', index=False)
 
 
 if __name__ == "__main__":

@@ -42,7 +42,7 @@ def remove_caps(ax):
 
 
 if __name__ == "__main__":
-    data = pd.read_csv(SIMDIR / 'pval_summary.csv')
+    data = pd.read_csv(SIMDIR / 'pval_summary.csv.gz')
     data = data.query(f'scale in {SCALES}')
     with np.errstate(divide='ignore'):
         logpval = np.asarray(-np.log10(data['pval']))
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     # plot null correlations ??
 
     # plot moran's I for diff spatnulls
-    data = pd.read_csv(SIMDIR / 'moran_summary.csv')
+    data = pd.read_csv(SIMDIR / 'moran_summary.csv.gz')
     data = data.query(f'scale in {SCALES}')
     for ialpha, alpha in enumerate(data['alpha'].unique()):
         # get relevant data and calculate delta Moran's I (null - empirical)
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         savefig(ax.figure, FIGDIR / 'moran' / f'empirical_{alpha}.svg')
 
     # plot P(p < 0.05)
-    data = pd.read_csv(SIMDIR / 'prob_summary.csv')
+    data = pd.read_csv(SIMDIR / 'prob_summary.csv.gz')
     data = data.query(f'scale in {SCALES}')
     # plot -log10(p) vs alpha
     fg = sns.relplot(x='alpha', y='prob', hue='spatnull', col='parcellation',

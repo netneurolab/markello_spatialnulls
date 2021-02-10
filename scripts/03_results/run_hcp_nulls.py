@@ -388,7 +388,7 @@ def main():
                                        ignore_index=True)
 
     # save the output data !
-    data.to_csv(HCPDIR / f'summary_thresh{PCTDROPTHRESH * 100:03.0f}.csv',
+    data.to_csv(HCPDIR / f'summary_thresh{PCTDROPTHRESH * 100:03.0f}.csv.gz',
                 index=False)
 
 

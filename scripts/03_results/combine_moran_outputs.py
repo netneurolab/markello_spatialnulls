@@ -120,7 +120,7 @@ def main():
                 df.append(combine_moran(parcellation, scale, alpha))
     col = ['parcellation', 'scale', 'alpha', 'spatnull', 'sim', 'moran']
     df = pd.concat(df, ignore_index=True)[col]
-    df.to_csv(SIMDIR / 'moran_summary.csv', index=False)
+    df.to_csv(SIMDIR / 'moran_summary.csv.gz', index=False)
 
 
 if __name__ == "__main__":
