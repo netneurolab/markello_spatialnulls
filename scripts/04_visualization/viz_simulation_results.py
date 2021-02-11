@@ -4,6 +4,7 @@ Generates figures showing results from the simulated data
 """
 
 from pathlib import Path
+import re
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -151,11 +152,11 @@ if __name__ == "__main__":
     # plot P(p < 0.05)
     data = pd.read_csv(SIMDIR / 'prob_summary.csv.gz')
     data = data.query(f'scale in {SCALES}')
-    # plot -log10(p) vs alpha
     fg = sns.relplot(x='alpha', y='prob', hue='spatnull', col='parcellation',
                      data=data, hue_order=SPATNULLS, palette=SPATHUES,
                      kind='line', linewidth=2.5)
     fg.set_titles('{col_name}')
+    fg.legend.set_visible(False)
     fg.set(xticklabels=[0.0, '', '', 1.5, '', '', 3.0],
            xlabel='spatial autocorrelation',
            ylabel='Prob(p < 0.05)',
@@ -164,9 +165,34 @@ if __name__ == "__main__":
     for ax in fg.axes.flat:
         ax.hlines(0.05, *xl, linestyle='dashed', color='black',
                   linewidth=1.0)
-    savefig(fg.fig, FIGDIR / 'prob' / 'prob_p05.svg')
+    savefig(fg.fig, FIGDIR / 'prob' / 'all_probp05.svg')
 
-    # plot shuffled correlations FOR VERTEX ONLY
+    # now plot P(p < 0.05) as a function of parcellation resolution
+    data = pd.read_csv(SIMDIR / 'prob_summary.csv.gz')
+    for parc in ('atl-cammoun2012', 'atl-schaefer2018'):
+        plotdata = data.query(f'parcellation == "{parc}"')
+        plotdata = plotdata.assign(
+            scale=plotdata['scale'].apply(
+                lambda x: re.search('(\d+)', x).group(1)
+            )
+        )
+        scales = np.asarray(plotdata['scale'].unique())
+        fg = sns.relplot(x='scale', y='prob', hue='spatnull',
+                         col='alpha', data=plotdata,
+                         hue_order=SPATNULLS, palette=SPATHUES,
+                         kind='line', linewidth=2.5)
+        fg.legend.set_visible(False)
+        fg.set_titles('{col_name}')
+        fg.set(xticklabels=[], xticks=scales,
+               xlabel='resolution', ylabel='Prob(p < 0.05)',
+               ylim=(0, 1.0), yticks=[0, 0.25, 0.5, 0.75, 1.0])
+        xl = fg.axes[0, 0].get_xlim()
+        for ax in fg.axes.flat:
+            ax.hlines(0.05, *xl, linestyle='dashed', color='black',
+                      linewidth=1.0)
+        savefig(fg.fig, FIGDIR / 'prob' / f'{parc}_probp05.svg')
+
+    # plot shuffled correlation distributions as func of SA (vertex only)
     data = pd.DataFrame(columns=['alpha', 'corrs'])
     alphas = ['alpha-0.0', 'alpha-1.0', 'alpha-2.0', 'alpha-3.0']
     for alpha in alphas:
