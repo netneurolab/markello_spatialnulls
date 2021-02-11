@@ -78,20 +78,24 @@ def _fftind(x, y, z):
 
     Parameters
     ----------
-    x,y,z : int
-        size of array
+    {x,y,z} : int
+        Size of array to be generated
 
     Returns
     -------
     k_ind : (3, x, y, z) np.ndarray
-        shifted Fourier coordinates, where:
+        Shifted Fourier coordinates, where:
             k_ind[0] : k_x components
             k_ind[1] : k_y components
             k_ind[2] : k_z components
 
     Notes
     -----
-    see scipy.fftpack.fftshift
+    See scipy.fftpack.fftshift
+
+    References
+    ----------
+    Based on code from Burt et al., 2020, NeuroImage
     """
 
     k_ind = np.mgrid[:x, :y, :z]
@@ -110,7 +114,7 @@ def gaussian_random_field(x, y, z, noise=None, alpha=3.0, normalize=True,
 
     Parameters
     ----------
-    x,y,z : int
+    {x,y,z} : int
         Grid size of generated field
     noise : (x, y, z) array_like, optional
         Noise array to which gaussian smoothing is added. If not provided an
@@ -121,12 +125,16 @@ def gaussian_random_field(x, y, z, noise=None, alpha=3.0, normalize=True,
     normalize : bool, optional
         Normalize the returned field to unit variance. Default: True
     seed : None, int, default_rng, optional
-        Random state to seed GRF. Default: None
+        Random state to seed `noise` generation. Default: None
 
     Returns
     -------
     gfield : (x, y, z) np.ndarray
-        Realization of gaussian random field
+        Realization of Gaussian random field
+
+    References
+    ----------
+    Based on code from Burt et al., 2020, NeuroImage
     """
 
     rs = np.random.default_rng(seed)
