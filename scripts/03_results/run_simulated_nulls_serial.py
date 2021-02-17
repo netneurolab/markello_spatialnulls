@@ -32,6 +32,7 @@ N_SIM = 1000  # number of simulations to run
 SEED = 1234  # reproducibility
 RUN_MORAN = False  # calculate Moran's I?
 SHUFFLE = True  # if we're shuffling sims instead of running paired (r = 0.15)
+USE_KNN = False  # whether to use default nearest neigh setting for Burt-2020
 
 
 def make_surrogates(data, parcellation, scale, spatnull):
@@ -82,8 +83,9 @@ def make_surrogates(data, parcellation, scale, spatnull):
                 dist = load(fn, mmap_mode='r')
                 index = np.argsort(dist, axis=-1)
                 dist = np.sort(dist, axis=-1)
+                knn = len(hdata) if USE_KNN else 1000
                 surrogates[idx] = \
-                    mapgen.Sampled(hdata, dist, index, knn=len(hdata),
+                    mapgen.Sampled(hdata, dist, index, knn=knn,
                                    seed=SEED, n_jobs=N_PROC)(N_PERM).T
                 Path(fn).unlink()
             else:
@@ -196,7 +198,8 @@ def main():
     args = get_parser()
 
     # reset some stuff
-    for param in ('n_perm', 'n_proc', 'seed', 'run_moran', 'shuffle'):
+    for param in ('n_perm', 'n_proc', 'seed', 'run_moran',
+                  'shuffle', 'use_knn'):
         globals()[param.upper()] = args[param]
 
     sims = range(args['start'], args['start'] + args['n_sim'])
@@ -219,9 +222,9 @@ def main():
                 # maybe parallelization here
                 if spatnull in simnulls.VERTEXWISE:
                     run_null('vertex', 'fsaverage5', spatnull, alpha, sim)
-                for parcellation, annotations in parcellations.items():
-                    for scale in annotations:
-                        run_null(parcellation, scale, spatnull, alpha, sim)
+                # for parcellation, annotations in parcellations.items():
+                #     for scale in annotations:
+                #         run_null(parcellation, scale, spatnull, alpha, sim)
 
 
 def get_parser():
@@ -232,6 +235,7 @@ def get_parser():
     parser.add_argument('--seed', default=SEED, type=int)
     parser.add_argument('--run_moran', default=False, action='store_true')
     parser.add_argument('--shuffle', default=False, action='store_true')
+    parser.add_argument('--use_knn', default=False, action='store_true')
     parser.add_argument('--spatnull', choices=simnulls.SPATNULLS,
                         default=simnulls.SPATNULLS, nargs='+')
     parser.add_argument('--alpha', choices=simnulls.ALPHAS,
