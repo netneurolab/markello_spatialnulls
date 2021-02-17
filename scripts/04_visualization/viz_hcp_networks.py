@@ -29,10 +29,10 @@ COLORS = np.array([
 ])
 METHODS = [
     'vazquez-rodriguez',
-    'vasa',
-    'hungarian',
     'baum',
     'cornblath',
+    'vasa',
+    'hungarian',
     'burt2018',
     'burt2020',
     'moran',

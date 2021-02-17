@@ -19,10 +19,10 @@ SPATNULLS = [  # all our null models
     'naive-para',
     'naive-nonpara',
     'vazquez-rodriguez',
-    'vasa',
-    'hungarian',
     'baum',
     'cornblath',
+    'vasa',
+    'hungarian',
     'burt2018',
     'burt2020',
     'moran'

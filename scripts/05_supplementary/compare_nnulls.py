@@ -18,7 +18,7 @@ from parspin.plotting import savefig
 
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.sans-serif'] = ['Myriad Pro']
-plt.rcParams['font.size'] = 28.0
+plt.rcParams['font.size'] = 20.0
 
 ROIDIR = Path('./data/raw/rois').resolve()
 SIMDIR = Path('./data/derivatives/simulated').resolve()
@@ -131,7 +131,7 @@ def run_analysis():
                         pval_by_subsets(parcellation, scale, spatnull, alpha),
                     )
     subsets = pd.concat(subsets, ignore_index=True, sort=True)
-    subsets.to_csv(OUTDIR / 'nnulls_summary.csv', index=False)
+    subsets.to_csv(OUTDIR / 'nnulls_summary.csv.gz', index=False)
     return subsets
 
 
@@ -140,9 +140,9 @@ if __name__ == "__main__":
     palette = dict(zip(simnulls.SPATNULLS, putils.SPATHUES))
     for parc, scale in PLOTS:
         plotdata = data.query(f'parcellation == "{parc}" & scale == "{scale}"')
-        fg = sns.relplot(x='n_nulls', y='d(pval)', hue='spatnull',
-                         col='alpha', data=plotdata, kind='line',
-                         palette=palette, ci=95)
+        fg = sns.relplot(x='n_nulls', y='d(pval)', hue='spatnull', col='alpha',
+                         hue_order=simnulls.SPATNULLS, data=plotdata,
+                         palette=palette, kind='line', ci=95)
         fg.set_titles('{col_name}')
         fg.axes[0, 0].set_xscale('log')
         fg.set(xlim=(75, 6000))

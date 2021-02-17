@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     # plot -log10(p) vs alpha
     fg = sns.relplot(x='alpha', y='-log10(p)', hue='spatnull',
-                     palette=SPATHUES, linewidth=2.5,
+                     hue_order=SPATNULLS, palette=SPATHUES, linewidth=2.5,
                      col='parcellation', kind='line', data=data)
     fg.set_titles('{col_name}')
     fg.set(xticklabels=[0.0, '', '', 1.5, '', '', 3.0],
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     # plot -log10(p) vs alpha for simulations with r = 0.15 +/- 0.025
     fg = sns.relplot(x='alpha', y='-log10(p)', hue='spatnull',
-                     palette=SPATHUES, linewidth=2.5,
+                     hue_order=SPATNULLS, palette=SPATHUES, linewidth=2.5,
                      col='parcellation', kind='line',
                      data=data.query('corr >= 0.125 & corr <= 0.175'))
     fg.set_titles('{col_name}')
@@ -92,8 +92,6 @@ if __name__ == "__main__":
     remove_caps(ax)
     sns.despine(ax=ax)
     savefig(ax.figure, FIGDIR / 'corrs' / 'all_corrs.svg')
-
-    # plot null correlations ??
 
     # plot moran's I for diff spatnulls
     data = pd.read_csv(SIMDIR / 'moran_summary.csv.gz')
