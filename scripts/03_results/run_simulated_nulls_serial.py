@@ -222,9 +222,9 @@ def main():
                 # maybe parallelization here
                 if spatnull in simnulls.VERTEXWISE:
                     run_null('vertex', 'fsaverage5', spatnull, alpha, sim)
-                # for parcellation, annotations in parcellations.items():
-                #     for scale in annotations:
-                #         run_null(parcellation, scale, spatnull, alpha, sim)
+                for parcellation, annotations in parcellations.items():
+                    for scale in annotations:
+                        run_null(parcellation, scale, spatnull, alpha, sim)
 
 
 def get_parser():
