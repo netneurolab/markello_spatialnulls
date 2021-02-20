@@ -100,7 +100,7 @@ if __name__ == "__main__":
         # get relevant data and calculate delta Moran's I (null - empirical)
         adata = data.query(f'alpha == "{alpha}"')
         plotdata = adata.query('spatnull != "empirical"')
-        empirical = adata.query('spatnull == "empirical" & sim == "9999"') \
+        empirical = adata.query('spatnull == "empirical" & sim == 9999') \
                          .set_index('parcellation') \
                          .loc[np.asarray(plotdata['parcellation']), 'moran']
         plotdata = plotdata.assign(**{
