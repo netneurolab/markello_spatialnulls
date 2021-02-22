@@ -80,7 +80,7 @@ def make_lineplot(data, fname=None, line_kwargs=None, **kwargs):
 if __name__ == "__main__":
     FIGDIR.mkdir(parents=True, exist_ok=True)
 
-    data = pd.read_csv(NSDIR / 'summary.csv.gz')
+    data = pd.read_csv(NSDIR / 'ns_summary.csv.gz')
 
     for parcellation in ['atl-cammoun2012', 'atl-schaefer2018']:
         dparc = data.query(f'parcellation == "{parcellation}"')

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: tf-8 -*-
 """
 Script for running null (spatial permutation) models for correlation matrices
 derived from NeuroSynth data. Saves out null distribution for each parcel /
@@ -352,7 +352,7 @@ def main():
                 'n_sig': np.sum(np.triu(corrs > cutoff, k=1))
             }, index=[0]), ignore_index=True)
 
-    data.to_csv(NSDIR / 'summary.csv', index=False)
+    data.to_csv(NSDIR / 'ns_summary.csv.gz', index=False)
 
 
 if __name__ == "__main__":
