@@ -31,7 +31,7 @@ N_PERM = 1000  # number of permutations for null models
 N_SIM = 1000  # number of simulations to run
 SEED = 1234  # reproducibility
 SHUFFLE = True  # if we're shuffling sims instead of running paired (r = 0.15)
-USE_KNN = False  # whether to use max poss nearest neigh setting for Burt-2020
+USE_KNN = False  # whether to use default nearest neigh setting for Burt-2020
 
 
 def make_surrogates(data, parcellation, scale, spatnull):
@@ -76,7 +76,7 @@ def make_surrogates(data, parcellation, scale, spatnull):
             if parcellation == 'vertex':  # memmap is required for this shit
                 index = np.argsort(dist, axis=-1)
                 dist = np.sort(dist, axis=-1)
-                knn = len(hdata) if USE_KNN else 1000
+                knn = 1000 if USE_KNN else len(hdata)
                 surrogates[idx] = \
                     mapgen.Sampled(hdata, dist, index, knn=knn,
                                    seed=SEED)(N_PERM).T
@@ -254,8 +254,7 @@ def get_parser():
     parser.add_argument('--n_proc', default=N_PROC, type=int)
     parser.add_argument('--seed', default=SEED, type=int)
     parser.add_argument('--shuffle', default=False, action='store_true')
-    parser.add_argument('--use_max_knn', default=False, dest='use_knn',
-                        action='store_true')
+    parser.add_argument('--use_knn', default=False, action='store_true')
     parser.add_argument('--spatnull', choices=simnulls.SPATNULLS,
                         default=simnulls.SPATNULLS, nargs='+')
     parser.add_argument('--alpha', choices=simnulls.ALPHAS,

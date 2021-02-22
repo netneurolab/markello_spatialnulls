@@ -2,7 +2,7 @@
 
 PYTHON ?= python
 
-all: empirical simulations plot_empirical plot_simulations suppl_empirical suppl_simulations manuscript doc
+all: empirical simulations plot_empirical plot_simulations suppl_empirical suppl_simulations manuscript
 
 help:
 	@echo "Please use 'make <target>' where <target> is one of:"
@@ -13,8 +13,8 @@ help:
 	@echo "  suppl_empirical     to run all supplementary analyses + figure-generating code"
 	@echo "  suppl_simulations   to run all supplementary analyses + figure-generating code"
 	@echo "  manuscript          to compile a PDF from the manuscript TeX files"
-	@echo "  doc                 to create a Jupyter Book of the documentation / walkthrough"
 	@echo "  all                 to run *all the things*"
+	@echo "  doc                 to create a Jupyter Book of the documentation / walkthrough"
 
 empirical:
 	@echo "Running data preprocessing\n"
@@ -36,11 +36,20 @@ simulations:
 	$(PYTHON) scripts/empirical/get_geodesic_distance.py
 	$(PYTHON) scripts/simulations/generate_simulations.py
 	@echo "Running correlated simulations"
-	$(PYTHON) scripts/simulations/run_simulated_nulls_parallel.py --use_max_knn
+	$(PYTHON) scripts/simulations/run_simulated_nulls_parallel.py \
+		--use_max_knn --spatnull naive-para naive-nonpara vazquez-rodriguez \
+								 baum cornblath vasa hungarian moran -- 1000
+	$(PYTHON) scripts/simulations/run_simulated_nulls_parallel.py \
+		--use_max_knn --spatnull burt2018 burt2020 -- 0 1000
 	@echo "Running randomized simulations"
-	$(PYTHON) scripts/simulations/run_simulated_nulls_parallel.py --use_max_knn --shuffle
+	$(PYTHON) scripts/simulations/run_simulated_nulls_parallel.py --shuffle \
+		--use_max_knn --spatnull naive-para naive-nonpara vazquez-rodriguez \
+								 baum cornblath vasa hungarian moran -- 1000
+	$(PYTHON) scripts/simulations/run_simulated_nulls_parallel.py --shuffle \
+		--use_max_knn --spatnull burt2018 burt2020 -- 0 1000
 	@echo "Generating Moran's I estimates"
-	$(PYTHON) scripts/simulations/run_simulated_nulls_serial.py --use_max_knn --run_moran
+	$(PYTHON) scripts/simulations/run_simulated_nulls_serial.py \
+		--use_max_knn --run_moran
 	@echo "Combining simulation outputs"
 	$(PYTHON) scripts/simulations/combine_moran_outputs.py
 	$(PYTHON) scripts/simulations/combine_simnulls_outputs.py

@@ -83,7 +83,7 @@ def make_surrogates(data, parcellation, scale, spatnull):
                 dist = load(fn, mmap_mode='r')
                 index = np.argsort(dist, axis=-1)
                 dist = np.sort(dist, axis=-1)
-                knn = len(hdata) if USE_KNN else 1000
+                knn = 1000 if USE_KNN else len(hdata)
                 surrogates[idx] = \
                     mapgen.Sampled(hdata, dist, index, knn=knn,
                                    seed=SEED, n_jobs=N_PROC)(N_PERM).T
@@ -235,8 +235,7 @@ def get_parser():
     parser.add_argument('--seed', default=SEED, type=int)
     parser.add_argument('--run_moran', default=False, action='store_true')
     parser.add_argument('--shuffle', default=False, action='store_true')
-    parser.add_argument('--use_max_knn', default=False, dest='use_knn',
-                        action='store_true')
+    parser.add_argument('--use_knn', default=False, action='store_true')
     parser.add_argument('--spatnull', choices=simnulls.SPATNULLS,
                         default=simnulls.SPATNULLS, nargs='+')
     parser.add_argument('--alpha', choices=simnulls.ALPHAS,
