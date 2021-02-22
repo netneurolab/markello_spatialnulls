@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn import metrics
 
 from netneurotools import stats as nnstats
 from parspin import simnulls, utils as putils
@@ -152,6 +153,13 @@ def main():
 
     prob = pd.DataFrame(prob)[col[:4] + ['prob']]
     prob.to_csv(SIMDIR / 'prob_summary.csv.gz', index=False)
+
+    prob['alpha'] = prob['alpha'].astype('category')
+    auc = prob.groupby(['parcellation', 'scale', 'spatnull']) \
+              .apply(lambda x: metrics.auc(x['alpha'].cat.codes, x['prob']))
+    auc.name = 'auc'
+    auc = auc.reset_index()
+    auc.to_csv(SIMDIR / 'auc_summary.csv.gz', index=False)
 
 
 if __name__ == "__main__":

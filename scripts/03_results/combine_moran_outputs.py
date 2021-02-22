@@ -111,16 +111,18 @@ def combine_moran(parcellation, scale, alpha):
 
 
 def main():
-    df = []
     parcellations = putils.get_cammoun_schaefer(data_dir=ROIDIR)
+
+    data = []
     for alpha in simnulls.ALPHAS:
-        df.append(combine_moran('vertex', 'fsaverage5', alpha))
+        data.append(combine_moran('vertex', 'fsaverage5', alpha))
         for parcellation, annotations in parcellations.items():
             for scale in annotations:
-                df.append(combine_moran(parcellation, scale, alpha))
+                data.append(combine_moran(parcellation, scale, alpha))
+
     col = ['parcellation', 'scale', 'alpha', 'spatnull', 'sim', 'moran']
-    df = pd.concat(df, ignore_index=True)[col]
-    df.to_csv(SIMDIR / 'moran_summary.csv.gz', index=False)
+    data = pd.concat(data, ignore_index=True)[col]
+    data.to_csv(SIMDIR / 'moran_summary.csv.gz', index=False)
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     fname = SPINDIR / 'vertex' / 'vazquez-rodriguez' / 'fsaverage5_spins.csv'
     if not fname.exists():
-        print('Generating V-R spins for fsaverage5 surface')
+        print('Generating spins for fsaverage5 surface')
         spins = nnsurf.gen_spinsamples(coords, hemi, exact=False,
                                        n_rotate=10000, verbose=True,
                                        seed=1234, check_duplicates=False)

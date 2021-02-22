@@ -28,8 +28,8 @@ if __name__ == '__main__':
     # get parcel distance matrices with this horrible nested for-loop :scream:
     for name, annotations in parcellations.items():
         for scale, annot in annotations.items():
-            for hemi in ['lh', 'rh']:
-                for allow_med in [True, False]:
+            for hemi in ('lh', 'rh'):
+                for allow_med in (True, False):
                     med = 'medial' if allow_med else 'nomedial'
                     out = DISTDIR / name / med / f'{scale}_{hemi}_dist.csv'
                     if out.exists():
@@ -48,9 +48,9 @@ if __name__ == '__main__':
                     putils.save_dir(out, dist)
 
     # get vertex distance matrix
-    for hemi in ['lh', 'rh']:
+    for hemi in ('lh', 'rh'):
         medial_path = medial / f'{hemi}.Medial_wall.label'
-        for allow_med in [True, False]:
+        for allow_med in (True, False):
             med = 'medial' if allow_med else 'nomedial'
             out = DISTDIR / 'vertex' / med / f'fsaverage5_{hemi}_dist.csv'
             if out.exists():
