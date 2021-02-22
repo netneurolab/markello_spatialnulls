@@ -14,7 +14,6 @@ import seaborn as sns
 
 from netneurotools import datasets as nndata
 from parspin.plotting import save_brainmap
-from parspin.utils import PARULA
 
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.sans-serif'] = ['Myriad Pro']
@@ -68,7 +67,7 @@ def plot_save_heatmap(data, fname=None, diagonal=False, cbar=False,
 
     fig, ax = plt.subplots(1, 1)
 
-    imshow_opts = dict(cmap=PARULA, rasterized=True)
+    imshow_opts = dict(rasterized=True)
     if imshow_kwargs is not None:
         imshow_opts.update(imshow_kwargs)
     coll = ax.imshow(plot, **imshow_opts)
@@ -110,8 +109,11 @@ if __name__ == "__main__":
     spins = np.loadtxt(SPINDIR / PARC / SPINTYPE / f'{SCALE}_spins.csv',
                        delimiter=',', dtype='int32', usecols=range(5))
 
-    cmap = sns.blend_palette((PARULA(20), [1, 1, 1], PARULA(215)),
-                             as_cmap=True)
+    cmap = sns.blend_palette((
+        [0.17220952378235294, 0.2903215685941177, 0.7762271708235293, 1.0],
+        [1, 1, 1, 1],
+        [0.9943915966588236, 0.7477932773470589, 0.2375319327294116, 1.0]
+    ), as_cmap=True)
 
     corr_orig = np.corrcoef(data.T)
     linkage = hierarchy.linkage(corr_orig, optimal_ordering=True)
@@ -139,7 +141,7 @@ if __name__ == "__main__":
     # save resampling arrays
     plot_save_heatmap(np.column_stack([range(len(data)), spins]),
                       fname='resamples', diagonal=True, cbar=False,
-                      aspect='auto',
+                      aspect='auto', cmap=cmap,
                       imshow_kwargs=dict(cmap=cmap))
 
     # save sample brain maps
@@ -160,7 +162,7 @@ if __name__ == "__main__":
         NSDIR / PARC / 'nulls' / SPINTYPE / f'{SCALE}_nulls.csv'
     )
     fig, ax = plt.subplots(1, 1)
-    ax = sns.kdeplot(null_dist, color=PARULA(20), linewidth=3, shade=True)
+    ax = sns.kdeplot(null_dist, color=cmap(0), linewidth=3, shade=True)
     sns.despine(ax=ax, left=True)
     ax.set(yticks=[], xlim=(0.4, 1.1), xticks=(0.5, 0.75, 1.0))
     (x, y), = np.where(np.isin(data.columns, terms))

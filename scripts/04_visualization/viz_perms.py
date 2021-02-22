@@ -13,7 +13,6 @@ from netneurotools import (datasets as nndata,
                            utils as nnutils)
 from parspin import burt
 from parspin.plotting import save_brainmap
-# from parspin.utils import PARULA
 
 FIGSIZE = 500
 SPINDIR = Path('./data/derivatives/spins').resolve()

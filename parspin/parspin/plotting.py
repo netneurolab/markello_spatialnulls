@@ -9,7 +9,7 @@ import numpy as np
 
 from netneurotools.datasets import fetch_fsaverage
 from netneurotools.plotting import plot_fsaverage, plot_fsvertex
-from parspin.utils import PARULA, pathify
+from parspin.utils import pathify
 
 
 def make_surf_plot(data, surf='inflated', version='fsaverage5', **kwargs):
@@ -86,7 +86,7 @@ def save_brainmap(data, fname, lh=None, rh=None, **kwargs):
         raise ValueError('Both lh and rh must be provided')
 
     opts = dict(
-        alpha=1.0, views=['lat'], colormap=PARULA, colorbar=True,
+        alpha=1.0, views=['lat'], colormap='RdBu_r', colorbar=True,
         surf='inflated', subject_id='fsaverage', size_per_view=500,
         offscreen=True,
     )
