@@ -25,6 +25,6 @@ dependencies:
     - pip:
         - "brainsmash>=0.0.10"
         - brainspace
-        - "git+https://github.com/netneurolab/netneurotools@c1a9a8383c39dcbb375b7e4f427dbd34519fe0e1"
+        - "git+https://github.com/netneurolab/netneurotools"
         - neurosynth
         - pysurfer

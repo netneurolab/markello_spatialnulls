@@ -16,3 +16,6 @@ singularity exec --cleanenv                             \
                  /neurodocker/startup.sh                \
                  make all
 ```
+
+(Note: we don't recommend using `make all` to run the analyses because this will take an _incredibly_ long time with default settings.
+Please refer to [our walkthrough](https://netneurolab.github.io/markello_spatialnulls) for guidelines and suggestions on reproducing our analyses!)

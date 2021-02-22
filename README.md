@@ -2,7 +2,7 @@
 
 ## "What's in this repository?"
 
-This repository contains data, code, and results for the manuscript "[Comparing spatially-constrained null models for parcellated brain maps](https://www.biorxiv.org/content/10.1101/2020.08.13.249797v1)" by Ross Markello & Bratislav Misic.
+This repository contains data, code, and results for the manuscript "[Comparing spatial null models for brain maps](https://www.biorxiv.org/content/10.1101/2020.08.13.249797v1)" by Ross Markello & Bratislav Misic.
 We investigated how well different null model implementations account for spatial autocorrelation in statistical analyses of whole-brain neuroimaging data.
 
 We've tried to document the various aspects of this repository with a whole bunch of README files, so feel free to jump around and check things out.

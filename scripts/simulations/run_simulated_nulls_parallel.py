@@ -254,7 +254,8 @@ def get_parser():
     parser.add_argument('--n_proc', default=N_PROC, type=int)
     parser.add_argument('--seed', default=SEED, type=int)
     parser.add_argument('--shuffle', default=False, action='store_true')
-    parser.add_argument('--use_knn', default=False, action='store_true')
+    parser.add_argument('--use_max_knn', default=False, dest='use_knn',
+                        action='store_true')
     parser.add_argument('--spatnull', choices=simnulls.SPATNULLS,
                         default=simnulls.SPATNULLS, nargs='+')
     parser.add_argument('--alpha', choices=simnulls.ALPHAS,
