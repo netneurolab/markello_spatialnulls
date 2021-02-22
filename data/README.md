@@ -12,3 +12,5 @@ This directory contains some summary data from the main analyses run in our manu
 
 We provide these CSV files for the sake of reproducibility; note, however, that all of these results can be generated programmatically.
 (Refer to our [walkthrough](https://netneurolab.github.io/markello_spatialnulls) for instructions on how to do this.)
+
+Note that if files provided through git LFS become unavailable (due to e.g., bandwidth limits) you can find duplicate copies on [OSF](https://osf.io/bhnqu/).
