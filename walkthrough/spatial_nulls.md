@@ -4,7 +4,7 @@ The different spatially-constrained null model implementations are the crux of o
 Many of them already had easy-to-use Python interfaces (i.e., [Burt-2020](https://brainsmash.readthedocs.io/) and [Moran](https://brainspace.readthedocs.io/)), while others were easy to translate from open-source MATLAB or R code (i.e., [Váša](https://github.com/frantisekvasa/rotate_parcellation)).
 
 Because #reasons, some of the null models were translated / implemented in our lab's catch-all utility package [`netneurotools`](https://github.com/netneurolab/netneurotools) (which you will find is used quite heavily throughout our analysis scripts), while other models (namely, Burt-2018) were implemented in a little helper package developed for this project ([`parspin`](https://github.com/netneurolab/markello_spatialnulls/blob/master/parspin)).
-Here, we provide a brief code snippet highlighting the implementation for each null models used in the current manuscript.
+Here, we provide a brief code snippet highlighting the implementation for each null models used.
 We quote relevant text from the manuscript describing the null models.
 
 ```{note}
@@ -15,6 +15,21 @@ The `n_perm` variable is the number of permutations / spins / surrogates to be g
 
 ## Naive models
 
+### Parametric
+
+> Although the exact implementation of the parametric method varies based on the statistical test employed, all implementations share a reliance on standard null distributions.
+> For example, when examining correlation values, the parametric method relies on the Student's *t*-distribution; when examining z-statistics, this method uses the standard normal distribution.
+
+```python
+from scipy import stats
+
+# map correspondence
+rcorr, p_value = stats.pearsonr(brain1, brain2)
+
+# partition specificity
+tstat, p_value = stats.ttest_1samp(brain[network], 0)
+```
+
 ### Non-parametric
 
 > "The naive non-parametric approach uses a random permutation (i.e., reshuffling) of the data to construct a null distribution, destroying its inherent spatial structure.
@@ -24,7 +39,7 @@ The `n_perm` variable is the number of permutations / spins / surrogates to be g
 from numpy import np
 
 rs = np.random.default_rng(1234)
-spins = np.column_stack([rs.permutation(len(brain)) for f in range(n_perm)])
+spins = np.column_stack([rs.permutation(len(brain)) for _ in range(n_perm)])
 nulls = brain[spins]
 ```
 
@@ -72,7 +87,7 @@ nulls = brain[spins]
 > Notably, this method can result in duplicate assignment of parcel values in each permutation."
 
 ```python
-from netneurtoools import datasets, freesurfer
+from netneurotools import datasets, freesurfer
 
 annot = datasets.fetch_cammoun2012('fsaverage5')['scale500']
 spins = freesurer.spin_parcels(lhannot=annot.lh, rhannot=annot.rh,
@@ -88,7 +103,7 @@ nulls[spins == -1] = np.nan
 > Because the data are re-parcellated the likelihood of duplicated assignments is very low (though not exactly zero); however, the distribution of re-parcellated values will be slightly different than the original data distribution."
 
 ```python
-from netneurtoools import datasets, freesurfer
+from netneurotools import datasets, freesurfer
 
 annot = datasets.fetch_cammoun2012('fsaverage5')['scale500']
 nulls = freesurer.spin_data(brain, lhannot=annot.lh, rhannot=annot.rh,
