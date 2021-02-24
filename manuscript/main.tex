@@ -5,6 +5,7 @@
 \usepackage{array}
 \usepackage{booktabs}
 \usepackage{charter}
+\usepackage{enumitem}
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
 \usepackage[hidelinks]{hyperref}
@@ -12,6 +13,11 @@
 \usepackage{natbib}
 \usepackage{titlesec}
 \usepackage{xcolor}
+
+% for showing mark-up / edits (\requires{xcolor})
+\definecolor{blue}{rgb}{0.0, 0.44, 1.0}
+\definecolor{black}{rgb}{0, 0, 0}
+\newcommand{\nimg}[1]{\textcolor{black}{{#1}}}
 
 % set bibliography preferences (\requires{natbib})
 \bibliographystyle{apalike}
@@ -21,6 +27,7 @@
 % figure controls
 \graphicspath{{figures/}}
 \renewcommand{\figurename}{Figure}
+\renewcommand{\tablename}{Table}
 
 % increase space between section headings + text (\requires{titlesec})
 \titlespacing{\section}{1.5pt}{1\baselineskip}{\baselineskip}
@@ -47,7 +54,7 @@
 
 \begin{document}
 
-\title{Comparing spatially-constrained null models for parcellated brain maps}
+\title{\nimg{Comparing spatial null models for brain maps}}
 \author{Ross D. Markello$^{1,*}$}
 \author{Bratislav Misic$^{1,*}$}
 
@@ -61,12 +68,15 @@
 \noindent Technological and data sharing advances have led to a proliferation of high-resolution structural and functional maps of the brain.
 Modern neuroimaging research increasingly depends on identifying correspondences between the topographies of these maps; however, most standard methods for statistical inference fail to account for their spatial properties.
 Recently, multiple methods have been developed to generate null distributions that preserve the spatial autocorrelation of brain maps and yield more accurate statistical estimates.
-Here, we comprehensively assess the performance of ten such published null frameworks in controlling the family-wise error rate in statistical analyses of parcellated neuroimaging data.
-We apply each framework on two prototypical analyses: (1) testing the correspondence between brain maps (e.g., correlating two activation maps) and (2) testing the spatial distribution of a feature within a partition (e.g., quantifying the specificity of an activation map within an intrinsic functional network).
-In agreement with previous reports, we find that naive null models that do not preserve spatial autocorrelation consistently yield unrealistically liberal statistical estimates.
-Performance of spatially-constrained null models depended on research context; model performance was generally consistent when testing correspondences between brain maps, but considerably more variable when testing partition specificity.
-Throughout these analyses, we observe minimal impact of parcellation and parcel resolution on null model performance.
-Altogether, our results highlight the need for continued development and standardization of statistically-rigorous methods for comparing brain maps.
+Here, we comprehensively assess the performance of ten published null frameworks in statistical analyses of neuroimaging data.
+\nimg{To test the efficacy of these frameworks in situations with a known ground truth, we first apply them to a series of controlled simulations and examine the impact of data resolution and spatial autocorrelation on their family-wise error rates.
+Next, we use each framework with two empirical neuroimaging datasets,  investigating their performance when testing} (1) the correspondence between brain maps (e.g., correlating two activation maps) and (2) the spatial distribution of a feature within a partition (e.g., quantifying the specificity of an activation map within an intrinsic functional network).
+\nimg{Finally, we investigate how differences in the implementation of these null models may impact their performance.}
+In agreement with previous reports, we find that naive null models that do not preserve spatial autocorrelation consistently yield \nimg{elevated false positive rates and} unrealistically liberal statistical estimates.
+\nimg{While spatially-constrained null models yielded more realistic, conservative estimates, even these frameworks suffer from inflated false positive rates and variable performance across analyses.}
+Throughout our results, we observe minimal impact of parcellation and resolution on null model performance.
+Altogether, our findings highlight the need for continued development of statistically-rigorous methods for comparing brain maps.
+\nimg{The present report provides a harmonised framework for benchmarking and comparing future advancements.}
 
 \end{abstract}
 
@@ -77,34 +87,132 @@ Altogether, our results highlight the need for continued development and standar
 \section*{INTRODUCTION}
 
 The brain is organized as a series of nested and increasingly multi-functional neural circuits.
-The connections and interactions among these circuits ultimately manifest as unique topographic distributions of multiple structural and functional properties.
-Recent advances in imaging, tracing, and recording technologies \citep{insel2013science}, together with global data sharing initiatives \citep{vanessen2013neuroimage, poldrack2013frontneuroinf, sudlow2015plosmed, casey2018devcogneuro}, have resulted in the generation of high-resolution maps of many of these properties, including gene expression \citep{hawrylycz2012nature, akbarian2015nature}, cytology \citep{voneconomo1925cytoarchitecture, scholtens2018neuroimage}, receptor densities \citep{beliveau2017jneuro, norgaard2020biorxiv, zilles2004janatomy, zilles2009curropneuro}, intracortical myelin \citep{burt2018natneuro, whitakervertes2016pnas}, and functional organization \citep{murray2014natneuro, yeo2011organization, shafiei2020biorxiv, margulies2016pnas, damoiseaux2006pnas, bellec2010neuroimage}.
+The connections and interactions among these circuits ultimately manifest as unique topographic distributions of structural and functional properties.
+Recent advances in imaging, tracing, and recording technologies \citep{insel2013science}, together with global data sharing initiatives \citep{vanessen2013neuroimage, poldrack2013frontneuroinf, sudlow2015plosmed, casey2018devcogneuro}, have resulted in the generation of high-resolution maps of many of these properties, including gene expression \citep{hawrylycz2012nature, akbarian2015nature}, cytology \citep{voneconomo1925cytoarchitecture, scholtens2018neuroimage}, receptor densities \citep{beliveau2017jneuro, norgaard2020biorxiv, zilles2004janatomy, zilles2009curropneuro}, intracortical myelin \citep{burt2018natneuro, whitakervertes2016pnas}, and functional organization \citep{murray2014natneuro, yeo2011organization, shafiei2020elife, margulies2016pnas, damoiseaux2006pnas, bellec2010neuroimage}.
 
-Increasingly, modern scientific discovery in neuroimaging research depends on identifying correspondences between the topographies of brain maps \citep{baum2020pnas, vazquezrodriguez2019pnas, wang2019sciadvances, shafiei2020biorxiv, gao2020biorxiv, demirtas2019neuron, hansen2020biorxiv}; however, standard methods for statistical inference fall short when making such comparisons \citep{alexander2013convergence, alexanderbloch2018neuroimage, burt2020neuroimage, fulcher2020biorxiv}.
+Increasingly, modern scientific discovery in neuroimaging research involves identifying correspondences between the topographies of brain maps \citep{baum2020pnas, vazquezrodriguez2019pnas, wang2019sciadvances, shafiei2020elife, gao2020biorxiv, demirtas2019neuron, hansen2020biorxiv}; however, standard methods for statistical inference fall short when making such comparisons (\citealt{alexander2013convergence, alexanderbloch2018neuroimage}, \nimg{\citealt{breakspear2004spatiotemporal}}, \citealt{burt2020neuroimage, fulcher2020biorxiv, gordon2016cercor}).
 Namely, in spatially-embedded systems---like the brain---neighboring data points are not statistically independent, violating the assumptions of many common inferential frameworks.
 As an example, consider computing a correlation between two brain maps.
 When using a standard parametric null (i.e., the Student's \textit{t}-distribution), the spatial autocorrelation of the maps violates the inherent requirement that the model errors are independent and identically distributed (\textit{i.i.d.}).
 When using a standard non-parametric null (i.e., random permutations of one of the feature maps), the spatial autocorrelation violates the requirement of exchangeability.
-In both instances, the calculated $p$-value will be inflated, yielding increased family-wise error rates (FWER, or type 1 error rates) across analyses.
+In both instances, the calculated \emph{p}-value will be inflated, yielding increased family-wise error rates (FWER, or type 1 error rates) across analyses.
 
-In the past several years multiple frameworks have been developed to overcome the shortcomings of standard null models in neuroimaging.
+\nimg{The impact of spatial autocorrelation on statistical inference has long been known in fields like geostatistics and ecology \citep{cliff1970ecogeo, legendre1993spatial}, and there have been significant developments in these fields to account for and overcome its influence \citep{cressie2015statistics, dutilleul1993modifying, fortin2000randomization, dray2011geoanalysis, deblauwe2012testing, wagner2015generating}.
+Acknowledgement of the impact of spatial autocorrelation in neuroimaging is far more recent.}
+Only in the past several years have frameworks been popularized to overcome the shortcomings of standard null models.
 These frameworks generate null distributions that preserve the spatial autocorrelation of brain maps, yielding statistical inferences that more accurately reflect the underlying data.
-Such spatially-constrained null models fall into two broad families: non-parametric spatial permutation models \citep{alexander2013convergence, alexanderbloch2018neuroimage} and parameterized data models \citep{burt2018natneuro, burt2020neuroimage, vosdewael2020brainspace}.
+
+Spatially-constrained null models in neuroimaging fall into two broad families: non-parametric spatial permutation models (\citealt{alexander2013convergence, alexanderbloch2018neuroimage}, \nimg{\citealt{gordon2016cercor}}) and parameterized data models \citep{burt2018natneuro, burt2020neuroimage, vosdewael2020brainspace}.
 In non-parametric spatial permutation models, the cortical surface is represented as a sphere to which random rotations are applied, generating surface maps with randomized topography but identical spatial autocorrelation.
 In parameterized data models, spatial autocorrelation is estimated from the empirical brain maps and used to generate surrogate nulls with randomized topography and similar---though not identical---spatial autocorrelation.
-Since their development, these models have been adapted by several researchers \citep{baum2020pnas, cornblath2019arxiv, vasa2018cercor, vazquezrodriguez2019pnas}; to our knowledge, there have been at least ten distinct implementations of null frameworks applied to statistical estimates of brain maps.
+Since their development, these models have been adapted by several researchers \citep{baum2020pnas, cornblath2020commbio, vasa2018cercor, vazquezrodriguez2019pnas}.
+To our knowledge, there have been at least ten distinct implementations of null frameworks applied to statistical estimates of brain maps.
 
-The earliest implementations of these null models, proposed in \citet{alexander2013convergence} and later formalized in \citet{alexanderbloch2018neuroimage}, described a non-parametric method by which the cortical surface was subjected to spatial rotations.
+One of the earliest implementations of these null models, proposed in \citet{alexander2013convergence} and later formalized in \citet{alexanderbloch2018neuroimage}, described a non-parametric method by which the cortical surface was subjected to spatial rotations.
 The principal challenge of implementing this method is that the medial wall---for which most brain maps contain no data---can be rotated into the cortical surface.
-This is an important consideration for parcellated brain maps in particular, because the loss of data caused by this medial wall rotation can bias results.
-To address this problem, researchers have opted to either discard the missing data \citep{baum2020pnas, cornblath2019arxiv}, assign the nearest data to missing parcels \citep{vazquezrodriguez2019pnas}, or ignore the medial wall entirely \citep{vasa2018cercor}.
+This is an important consideration because the loss of data caused by this medial wall rotation can bias results.
+To address this problem, researchers have opted to either discard the missing data \citep{baum2020pnas, cornblath2020commbio}, assign the nearest data to missing parcels \citep{vazquezrodriguez2019pnas}, or ignore the medial wall entirely \citep{vasa2018cercor}.
 Other groups have devised alternative methods that do not rely on spatial rotations but use generative models instead.
 These parameterized frameworks vary in their conceptualization and implementation of the data-generating process, ranging from a spatial lag model \citep{burt2018natneuro} to spectral randomization \citep{wagner2015generating, vosdewael2020brainspace} to variogram matching \citep{burt2020neuroimage}.
 How these different models perform when applied to the same experimental questions and datasets remains unclear.
 
-Here, we comprehensively compare how ten published null frameworks control the FWER in statistical analyses of parcellated neuroimaging data.
-Using multiple open-access datasets (Neurosynth [\citealt{yarkoni2011natmethods}]; Human Connectome Project [\citealt{vanessen2013neuroimage}]), we apply each framework on two prototypical analyses: (1) assessing the correspondence between brain maps (e.g., correlating two activation maps) and (2) assessing the spatial distribution of a feature within a partition (e.g., quantifying the enrichment of T1w/T2w ratios in resting state networks).
-In both analyses we systematically examine the impact of parcellation---which differentially modifies the spatial structure of the underlying data---on the performance of the null frameworks.
+Here, we comprehensively compare how ten published null frameworks control the FWER in statistical analyses of neuroimaging data.
+\nimg{First, using comprehensive simulations we examine the accuracy of statistical inferences drawn by each of the null models and their respective false positive rates.
+Next, relying on} open-access empirical datasets (Neurosynth [\citealt{yarkoni2011natmethods}]; Human Connectome Project [\citealt{vanessen2013neuroimage}]), we apply each null framework to two prototypical analyses: (1) assessing the correspondence between brain maps (e.g., correlating two activation maps) and (2) assessing the spatial distribution of a feature within a partition (e.g., quantifying the enrichment of T1w/T2w ratios in resting state networks).
+In all analyses we systematically examine the impact of parcellation---which differentially modifies the spatial structure of the underlying data---on the performance of the null frameworks.
+
+\section*{METHODS}
+
+\subsection*{Code and data availability}
+
+All code used for data processing, analysis, and figure generation is available on GitHub (\url{https://github.com/netneurolab/markello_spatialnulls}) and directly relies on the following open-source Python packages: BrainSMASH \citep{burt2020neuroimage}, BrainSpace \citep{vosdewael2020brainspace}, IPython \citep{ipython}, Jupyter \citep{jupyter}, Matplotlib \citep{matplotlib}, NeuroSynth \citep{yarkoni2011natmethods}, NiBabel \citep{nibabel}, NumPy \citep{numpyv1, numpyv2}, Pandas \citep{pandas}, PySurfer \citep{pysurfer}, Scikit-learn \citep{sklearn}, SciPy \citep{scipy}, and Seaborn \citep{seaborn}.
+Additional software used in the reported analyses includes FreeSurfer (v6.0.0, \url{http://surfer.nmr.mgh.harvard.edu/}; \citealt{fischl1999humanbrainmap}) and the Connectome Workbench (v1.4.2, \url{https://www.humanconnectome.org/software/connectome-workbench}; \citealt{marcus2011frontiers}).
+
+\subsection*{Data}
+
+\subsubsection*{NeuroSynth association maps}
+
+To replicate the analyses described in \citet{alexanderbloch2018neuroimage} we downloaded ``association'' maps from NeuroSynth \citep{yarkoni2011natmethods}\nimg{, a meta-analytic tool that synthesizes results from published MRI studies by linking voxel activation coordinates reported in an article to keywords in its abstract.
+We restricted the maps from NeuroSynth to terms that overlapped with those defined in the Cognitive Atlas, an ontological database for defining and relating cognitive processes} (\url{https://www.cognitiveatlas.org/concepts}; \citealt{poldrack2011frontiers, poldrack2011neuron, poldrack2016annrevpsych}; refer to Table~\ref{-ns-terms} for a full list of terms).
+This resulted in 123 volumetric statistical maps which were then inflated to a mid-gray projection of FreeSurfer's fsaverage5 surface using nearest neighbor interpolation.
+
+\subsubsection*{Human Connectome Project}
+
+Group-averaged T1w/T2w (a proxy for intracortical myelin) data were downloaded from the S1200 release of the Human Connectome Project (HCP; \citealt{vanessen2013neuroimage}).
+To ensure consistency with the reported NeuroSynth analyses, data were resampled to FreeSurfer's fsaverage5 surface following instructions on the Human Connectome Project \nimg{wiki} page (\url{https://wiki.humanconnectome.org/display/PublicData/HCP+Users+FAQ}).
+
+\subsubsection*{Brain parcellations}
+
+In order to examine the impact of parcellations on the tested null models we used two multi-scale resolution atlases
+The first, referred to throughout the text as the ``Cammoun atlas'', has five resolutions ranging from 68 to 1,000 parcels (68, 114, 219, 448, and 1,000 parcels), and was generated by dividing the Desikan-Killiany atlas \citep{desikan2006automated} into equally-sized sub-units based on group-level diffusion weighted imaging data \citep{cammoun2012mapping}.
+The second, referred to throughout the text as the ``Schaefer atlas'', has ten resolutions ranging from 100 to 1,000 parcels in steps of 100 parcels (i.e., 100, 200, 300, and so on), and was generated via a gradient-weighted Markov Random Field model from resting state fMRI data \citep{schaefer2018cercor}.
+
+NeuroSynth activation maps and the HCP T1w/T2w brain map were parcellated using all resolutions of the Schaefer and Cammoun atlases.
+Values for vertices lying on the medial wall of the surface mesh were not considered.
+
+\subsubsection*{Network partitions}
+
+To investigate the partition specificity of brain maps we applied two common network definitions: the seven functional networks defined in \citet{yeo2011organization} and the seven cytoarchitectonic classes proposed by \citet{voneconomo1925cytoarchitecture}.
+
+For the Cammoun atlas we used the fsaverage5 vertex-level Yeo-Krienen network assignments provided by FreeSurfer.
+To derive parcel-wise network assignments from this vertex representation we applied a winner-take-all approach; that is, the mode of the vertices in each parcel was used to select the representative network.
+\nimg{For example, if a given parcel has twenty constituent vertices, ten of which are assigned to network A, three to network B, and seven to network C, a winner-take-all approach would assign that parcel to network A.}
+For the Schaefer atlas we used the parcel assignments for the Yeo-Krienen networks provided by the original authors.
+To derive von Economo--Koskinas classes for parcels in both the Cammoun and Schaefer atlases we applied the classifiers provided by \citet{scholtens2018neuroimage} to the fsaverage5 surface, yielding vertex-level assignments.
+These assignments were then used with the winner-take-all approach to generate parcel-level network assignments.
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{null_frameworks.png}}
+    \caption{
+      \textbf{Null model framework examples |}
+      Examples of the null frameworks applied to toy data representing an anterior-posterior gradient (empirical data, left) using the 219-parcel Cammoun atlas.
+      All spatial permutation null examples were generated using the same rotation matrix to highlight variations between the different implementations.
+      Parameterized null examples were chosen so as to maximize similarity to the spatial permutation nulls for visualization purposes.
+      \nimg{Black arrows in the \textit{Baum} and \textit{Cornblath} method examples indicate missing values due to rotation of the medial wall into the cortical surface (see \textit{Methods: Null model frameworks} for more information).}
+      }
+    \label{figure-null-frameworks}
+  \end{center}
+\end{figure*}
+
+\subsection*{Null model frameworks}
+
+Here, we briefly describe null model frameworks as initially proposed in the literature, and then explain the specific details of the implementations used in the current report.
+For a summary overview of the implementations please refer to Table~\ref{table-null-models} \nimg{and for an examination of their relative computational cost see Fig.~\ref{supp-figure-runtime-results}.}
+
+\subsubsection*{Naive models}
+
+Commonly used in the neuroimaging literature prior to the development of spatially-constrained frameworks, so-called naive models do not take into account the spatial structure of the data when constructing null distributions, commonly resulting in inflated family-wise error rates.
+We test two such naive models: a \emph{parametric} and a \emph{non-parametric} method.
+
+\paragraph*{Naive parametric method.}
+
+Although the exact implementation of the parametric method varies based on the statistical test employed, all implementations share a reliance on standard null distributions.
+For example, when examining correlation values, the parametric method relies on the Student's \emph{t}-distribution; when examining z-statistics, this method uses the standard normal distribution.
+
+\paragraph*{Naive non-parametric method.}
+
+The naive non-parametric approach uses a random permutation (i.e., reshuffling) of the data to construct a null distribution, destroying its inherent spatial structure.
+Each \nimg{vertex or} parcel is uniquely reassigned the value of another \nimg{vertex or} parcel for every permutation.
+
+\subsubsection*{Spatial permutation models}
+
+First published in \citet{alexander2013convergence} and later formalized in \citet{alexanderbloch2018neuroimage}, spatial permutation models generate spatially-constrained null distributions by applying random rotations to spherical projections of the brain.
+A rotation matrix ($\mathbf{R}$) is applied to the three-dimensional coordinates of the brain ($\mathbf{V}$) to generate a set of rotated coordinates ($\mathbf{V_{rot}} = \mathbf{V} \mathbf{R}$).
+The permutation is constructed by replacing the original values at each coordinate with those of the closest rotated coordinate.
+Rotations are generated independently for one hemisphere and then mirrored across the anterior-posterior axis for the other.
+
+\nimg{Application of the \textit{Alexander-Bloch} rotation method to parcellated brain data entails several methodological choices, and in recent years at least four different adaptations on this technique have been published}: \citet{vazquezrodriguez2019pnas}, \citet{vasa2018cercor}, \citet{baum2020pnas}, and \citet{cornblath2020commbio}.
+We test all four of these adaptations, in addition to one other method (\emph{Hungarian}) that we posit is a natural extension thereof.
+\nimg{Note, however, that when analyzing vertex-level data all of these adaptations reduce to the original \textit{Alexander-Bloch} technique.}
+
+\paragraph*{V{\'a}zquez-Rodr{\'i}guez method.}
+The \textit{V{\'a}zquez-Rodr{\'i}guez} method, which serves as a direct adaptation of the original framework from \citet{alexanderbloch2018neuroimage} but applied to parcellated brain data, was first used in \citet{vazquezrodriguez2019pnas}.
+In this adaptation, vertex coordinates are replaced with those of parcel centroids.
+That is, a rotation is applied to the coordinates for the center-of-mass of each parcel, and parcels are reassigned the value of the closest rotated parcel (i.e., that with the minimum Euclidean distance).
+\nimg{If the medial wall is rotated into a region of cortex the value of the nearest parcel is assigned instead, ensuring that all parcels have values for every rotation.
+This method for handling the medial wall consequently} permits the duplicate reassignment of parcel values for every rotation, such that some parcel values may not be present in a given rotation and others may appear more than once.
+\nimg{Note that the exact method used to define parcel centroids may impact the performance of this model (see \textit{Methods: Null model implementation variability}).}
 
 \begin{table*}[htp]
     \caption{
@@ -114,6 +222,7 @@ In both analyses we systematically examine the impact of parcellation---which di
       The \emph{Duplications} column indicates whether parcel values can be duplicated in the given framework.
       The \emph{Citation} column indicates the first appearance of the described implementation in the neuroimaging literature, if known.
       Code and/or references to code for implementing all frameworks is available at \url{https://github.com/netneurolab/markello_spatialnulls}.
+      \nimg{Refer to Fig.~\ref{supp-figure-runtime-results} for comparisons of the computational time of each framework and Table~\ref{supp-table-null-drawbacks} for an overview of the drawbacks of each null model.}
       \vspace{-0.5\baselineskip}
     }
     \label{table-null-models}
@@ -124,15 +233,15 @@ In both analyses we systematically examine the impact of parcellation---which di
                                                                                                                                                                          \toprule
         \multicolumn{4}{c}{\textbf{Naive models}}                                                                                                                     \\ \toprule
         \emph{Method}   & \emph{Description}                                                                                & \emph{Duplications} & \emph{Citation}   \\ \midrule
-        Parametric      & Uses standard ``normal'' distributions (e.g., Student's \emph{t}-distribution)                    & No  &                                   \\
-        Non-parametric  & Reorders parcels randomly, not taking into account their inherent spatial structure               & No  &                                   \\ \toprule
+        Parametric      & Uses standard \nimg{parametric} distributions (e.g., Student's \emph{t}-distribution)             & No  &  ---                              \\
+        Non-parametric  & Reorders parcels randomly, not taking into account their inherent spatial structure               & No  &  ---                              \\ \toprule
         \multicolumn{4}{c}{\textbf{Spatial permutation models}}                                                                                                       \\ \toprule
         \emph{Method}   & \emph{Description}                                                                                & \emph{Duplications} & \emph{Citation}   \\ \midrule
         V{\'a}zquez-Rodr{\'i}guez & Assigns parcel centroid to closest rotated centroid based on minimum Euclidean distance & Yes & \citet{vazquezrodriguez2019pnas}  \\
-        V{\'a}{\v{s}}a  & Uses an iterative procedure to uniquely assign parcels based on distance to the rotated parcels   & No  & \citet{vasa2018cercor}            \\
-        Hungarian       & Uses the Hungarian algorithm to match original and rotated parcel centroids                       & No  &                                   \\
         Baum            & Projects parcel data to vertices, rotates, and takes the mode of vertices in each parcel          & Yes & \citet{baum2020pnas}              \\
-        Cornblath       & Projects parcel data to vertices, rotates, and takes the mean of vertices in each parcel          & Yes & \citet{cornblath2019arxiv}        \\ \toprule
+        Cornblath       & Projects parcel data to vertices, rotates, and takes the mean of vertices in each parcel          & Yes & \citet{cornblath2020commbio}        \\
+        V{\'a}{\v{s}}a  & Uses an iterative procedure to uniquely assign parcels based on distance to the rotated parcels   & No  & \citet{vasa2018cercor}            \\
+        Hungarian       & Uses the Hungarian algorithm to match original and rotated parcel centroids                       & No  &                                   \\ \toprule
         \multicolumn{4}{c}{\textbf{Parameterized data models}}                                                                                                        \\ \toprule
         \emph{Method}   & \emph{Description}                                                                                & \emph{Duplications} & \emph{Citation}   \\ \midrule
         Burt-2018      & Uses a distance-dependent spatially autoregressive model to generate nulls                         & No  & \citet{burt2018natneuro}          \\
@@ -142,115 +251,36 @@ In both analyses we systematically examine the impact of parcellation---which di
     \end{center}
 \end{table*}
 
-\begin{figure*}[htp]
-  \begin{center}
-    \centerline{\includegraphics[width=0.9\textwidth]{null-frameworks.png}}
-    \caption{
-      \textbf{Null model framework examples |}
-      Examples of the null frameworks applied to toy data representing an anterior-posterior gradient (original data, top left) using the Cammoun 219-parcel atlas.
-      All spatial permutation null examples were generated using the same rotation matrix to highlight variations between the different implementations.
-      Parameterized null examples were chosen so as to maximize similarity to the spatial permutation nulls for visualization.
-      }
-    \label{figure-null-frameworks}
-  \end{center}
-\end{figure*}
+\paragraph*{Baum method.}
 
-\section*{METHODS AND MATERIALS}
+Used initially in \citet{baum2020pnas}, this method projects parcellated brain data to a high-resolution surface mesh, assigning identical values to all the vertices within a given parcel.
+The projected mesh is subjected to the original spatial permutation reassignment procedure \citep[i.e., from][]{alexanderbloch2018neuroimage} and re-parcellated by taking the modal (i.e., the most common) value of the vertices in each parcel.
+\nimg{When the rotated medial wall completely subsumes a cortical parcel that region is assigned a value of NaN and is removed from subsequent analyses.}
+Notably, this method can result in duplicate assignment of parcel values in each permutation.
 
-\subsection*{Code and data availability}
+\paragraph*{Cornblath method.}
 
-All code used for data processing, analysis, and figure generation is available on GitHub (\url{https://github.com/netneurolab/markello_spatialnulls}) and directly relies on the following open-source Python packages: BrainSMASH \citep{burt2020neuroimage}, BrainSpace \citep{vosdewael2020brainspace}, IPython \citep{ipython}, Jupyter \citep{jupyter}, Matplotlib \citep{matplotlib}, NeuroSynth \citep{yarkoni2011natmethods}, NiBabel \citep{nibabel}, NumPy \citep{numpyv1, numpyv2}, Pandas \citep{pandas}, PySurfer \citep{pysurfer}, Scikit-learn \citep{sklearn}, SciPy \citep{scipy}, and Seaborn \citep{seaborn}.
-Additional software used in the reported analyses includes FreeSurfer (v6.0.0; \url{http://surfer.nmr.mgh.harvard.edu/}; \citealt{fischl1999humanbrainmap}) and the Connectome Workbench (v1.4.2; \url{https://www.humanconnectome.org/software/connectome-workbench}; \citealt{marcus2011frontiers}).
-
-\subsection*{Data}
-
-\subsubsection*{NeuroSynth association maps}
-
-To replicate the analyses described in \citet{alexanderbloch2018neuroimage} we downloaded ``association'' maps from NeuroSynth \citep{yarkoni2011natmethods} for $t = 123$ terms overlapping with those defined in the Cognitive Atlas (\url{https://www.cognitiveatlas.org/concepts}; \citealt{poldrack2011neuron, poldrack2016annrevpsych}; refer to Table~\ref{supp-table-ns-terms} for a full list of terms).
-This resulted in 123 volumetric statistical maps which were then inflated to a mid-gray projection of FreeSurfer's fsaverage5 surface using nearest neighbor interpolation.
-
-\subsubsection*{Human Connectome Project}
-
-Group-averaged T1w/T2w (a proxy for intracortical myelin) data were downloaded from the S1200 release of the Human Connectome Project (HCP; \citealt{vanessen2013neuroimage}).
-To ensure consistency with the reported NeuroSynth analyses, data were resampled to FreeSurfer's fsaverage5 surface following instructions on the Human Connectome Project Wikipedia page (\url{https://wiki.humanconnectome.org/display/PublicData/HCP+Users+FAQ}).
-
-\subsubsection*{Brain parcellations}
-
-In order to examine the impact of parcellations on the tested null models we used two multi-scale resolution atlases generated from structural \citep{cammoun2012mapping} and functional \citep{schaefer2018cercor} connectivity data.
-The former, referred to throughout the text as the ``Cammoun atlas'', has five resolutions ranging from 68 to 1000 parcels (68, 114, 219, 448, and 1000 parcels), generated by dividing the Desikan-Killiany atlas \citep{desikan2006automated} into equally-sized sub-units based on group-level diffusion weighted imaging data.
-The latter, referred to throughout the text as the ``Schaefer atlas'', has ten resolutions ranging from 100 to 1000 parcels in steps of 100 parcels (i.e., 100, 200, 300, and so on), generated via a gradient-weighted Markov Random Field model from resting state fMRI data \citep{schaefer2018cercor}.
-
-NeuroSynth activation maps and the HCP T1w/T2w brain map were parcellated using all resolutions of the Schaefer and Cammoun atlases.
-Values for vertices lying on the medial wall of the surface mesh were not considered.
-
-\subsubsection*{Network partitions}
-
-To investigate the partition specificity of brain maps we applied two common network definitions: the seven functional networks defined in \citet{yeo2011organization} and the seven cytoarchitectonic classes proposed by \citet{voneconomo1925cytoarchitecture}.
-
-For the Cammoun atlas we used the fsaverage5 vertex-level Yeo network assignments provided by FreeSurfer.
-To derive parcel-wise network assignments from this vertex representation we applied a winner-take-all approach; that is, the mode of the vertices in each parcel was used to select the representative network.
-For the Schaefer atlas we used the parcel assignments for the Yeo networks provided by the original authors.
-To derive von Economo--Koskinas classes for parcels in both the Cammoun and Schaefer atlases we applied the classifiers provided by \citet{scholtens2018neuroimage} to the fsaverage5 surface, yielding vertex-level assignments; these assignments were then used with the winner-take-all approach to generate parcel-level network assignments.
-
-\subsection*{Null model frameworks}
-
-Here, we briefly describe null model frameworks as initially proposed in the literature, and then explain the specific details of the implementations used in the current report.
-For a summary overview of the implementations please refer to Table~\ref{table-null-models}.
-
-\subsubsection*{Naive models}
-
-Commonly used in the neuroimaging literature prior to the development of spatially-constrained frameworks, so-called naive models do not take into account the spatial structure of the data when constructing null distributions, commonly resulting in inflated family-wise error rates.
-We test two such models: a \emph{parametric} and a \emph{non-parametric} method.
-
-\paragraph*{Naive parametric method.}
-
-Although the exact implementation of the parametric method varies based on the statistical test employed, all implementations share a reliance on standard null distributions.
-For example, when examining correlation values, the parametric method relies on the Student's \emph{t}-distribution; when examining z-statistics, this method uses the standard normal distribution.
-
-\paragraph*{Naive non-parametric method.}
-
-The naive non-parametric approach uses a random permutation (i.e., reshuffling) of the data to construct a null distribution, destroying its inherent spatial structure.
-Each parcel is uniquely reassigned the value of another parcel for every permutation.
-
-\subsubsection*{Spatial permutation models}
-
-First published in \citet{alexander2013convergence} and later formalized in \citet{alexanderbloch2018neuroimage}, spatial permutation models generate spatially-constrained null distributions by applying random rotations to spherical projections of the brain.
-A rotation matrix ($\mathbf{R}$) is applied to the three-dimensional coordinates of the brain ($\mathbf{V}$) to generate a set of rotated coordinates ($\mathbf{V_{rot}} = \mathbf{V} \mathbf{R}$); the permutation is constructed by replacing the original values at each coordinate with those of the closest rotated coordinate.
-Rotations are generated independently for one hemisphere and then mirrored across the anterior-posterior axis for the other.
-
-At the time of writing, we are aware of four published adaptations of this spatial permutation framework that have been applied to parcellated brain data: \citet{vazquezrodriguez2019pnas}, \citet{vasa2018cercor}, \citet{baum2020pnas}, and \citet{cornblath2019arxiv}.
-We test all four of these adaptations, in addition to one other method (\emph{Hungarian}) that we posit is a natural extension thereof.
-
-\paragraph*{V{\'a}zquez-Rodr{\'i}guez method.}
-The \textit{V{\'a}zquez-Rodr{\'i}guez} method, which serves as a direct adaptation of the original framework from \citet{alexanderbloch2018neuroimage} but applied to parcellated brain data, was first used in \citet{vazquezrodriguez2019pnas}.
-In this adaptation, vertex coordinates are replaced with those of parcel centroids.
-That is, a rotation is applied to the coordinates for the center-of-mass of each parcel, and parcels are reassigned the value of the closest rotated parcel (i.e., that with the minimum Euclidean distance).
-As in the original formulation this method permits the duplicate reassignment of parcel values for every rotation, such that some parcel values may not be present in a given rotation and others may appear more than once.
+In this method implemented by \citet{cornblath2020commbio}, parcellated data are projected to a high-resolution spherical surface mesh, rotated, and re-parcellated by taking the average (i.e., the arithmetic mean) of the vertices in each parcel.
+\nimg{When the rotated medial wall completely subsumes a cortical parcel that region is assigned a value of NaN and is removed from subsequent analyses.}
+Because the data are re-parcellated the likelihood of duplicated assignments is very low (though not exactly zero); however, the distribution of re-parcellated values will be slightly different than the original data distribution.
 
 \paragraph*{V{\'a}{\v{s}}a method.}
 
-The first known application of spatial permutations to parcellated data, the \textit{V{\'a}{\v{s}}a} method \citep{vasa2018cercor} attempted to resolve the primary issue of the Alexander-Bloch method: duplicate reassignments.
-That is, this method was created so as to yield a perfect permutation of the original data for every rotation.
-As with the \textit{V{\'a}zquez-Rodr{\'i}guez} method, parcel centroids are used instead of vertex coordinates.
+The first known application of spatial permutations to parcellated data, the \textit{V{\'a}{\v{s}}a} method \citep{vasa2018cercor} attempted to resolve one of the primary drawbacks of the Alexander-Bloch method: duplicate reassignment of values.
+That is, this method was created so as to yield a ``perfect'' permutation of the original data for every rotation.
+Similar to the \textit{V{\'a}zquez-Rodr{\'i}guez} method, parcel centroids are used instead of vertex coordinates.
 In order to avoid duplicate reassignments, parcels are iteratively assigned by (1) finding the closest rotated parcel to each original parcel, and (2) assigning the most distant pair of parcels.
 This two-step process is then repeated for all remaining unassigned parcels until each has been reassigned.
+\nimg{Parcels are reassigned without consideration for the medial wall or its rotated location.
+Note that the exact method used to define parcel centroids may impact the performance of this model (see \textit{Methods: Null model implementation variability}).}
 
 \paragraph*{Hungarian method.}
 
 Similar to the \textit{V{\'a}{\v{s}}a} method, the \textit{Hungarian} method attempts to uniquely reassign each parcel for every rotation.
 Instead of using an iterative process, however, which can result in globally sub-optimal assignments, this method uses the Hungarian algorithm to solve a linear sum assignment problem \citep{kuhn1955hungarian}.
 This method attempts to uniquely reassign each parcel such that the global reassignment cost is minimized, where cost is quantified as the distance between the original and rotated parcel centroid coordinates.
-
-\paragraph*{Baum method.}
-
-Used initially in \citet{baum2020pnas}, this method projects parcellated brain data to a high-resolution surface mesh, assigning identical values to all the vertices within a given parcel.
-The projected mesh is subjected to the original spatial permutation reassignment procedure and re-parcellated by taking the modal (i.e., the most common) value of the vertices in each parcel.
-Notably, this method can result in duplicate assignment of parcel values in each permutation.
-
-\paragraph*{Cornblath method.}
-
-In this method implemented by \citet{cornblath2019arxiv}, parcellated data are projected to a high-resolution spherical surface mesh, rotated, and re-parcellated by taking the average (i.e., the arithmetic mean) of the vertices in each parcel.
-Because the data are re-parcellated the likelihood of duplicated assignments is very low (though not exactly zero); however, the distribution of re-parcellated values will be slightly different than the original data distribution.
+\nimg{The medial wall is ignored in all rotations and the optimal reassignment is determined without consideration for its location.
+Note that the exact method used to define parcel centroids may impact the performance of this model (see \textit{Methods: Null model implementation variability}).}
 
 \paragraph*{Null model implementations}
 
@@ -275,39 +305,68 @@ Rank-ordered values in the $\mathbf{y_{surr}}$ map are replaced with correspondi
 
 Two years after introducing their spatial autoregressive method, \citet{burt2020neuroimage} proposed a novel model to generate surrogate data using variogram estimation.
 The method operates in two main steps: (1) randomly permute the values in a given brain map, and (2) smooth and re-scale the permuted values to reintroduce spatial autocorrelation characteristic of the original, non-permuted data.
-Reintroduction of spatial autocorrelation onto the permuted data is achieved via the transformation $|\beta|^{1/2} \mathbf{x'} + |\alpha|^{1/2} \mathbf{z}$, where $\mathbf{x'}$ is the permuted data, $\mathbf{z} \sim \mathcal{N}(0,1)$ is a vector of random Gaussian noise, and $\alpha$ and $\beta$ are estimated via a least-squares optimization between variograms of the original and permuted data.
-Rank-ordered values in the surrogate map are replaced with corresponding values from the original brain map.
+Reintroduction of spatial autocorrelation onto the permuted data is achieved via the transformation $\mathbf{y} = |\beta|^{1/2} \mathbf{x'} + |\alpha|^{1/2} \mathbf{z}$, where $\mathbf{x'}$ is the permuted data, $\mathbf{z} \sim \mathcal{N}(0,1)$ is a vector of random Gaussian noise, and $\alpha$ and $\beta$ are estimated via a least-squares optimization between variograms of the original and permuted data.
+\nimg{When applied to empirical data,} rank-ordered values in the surrogate map are replaced with corresponding values from the original brain map\nimg{; surrogates maps generated from simulated data use the raw values of $\mathbf{y}$.}
 
 \paragraph*{Moran method.}
 
-Originally developed in the ecology literature \citep{dray2011geoanalysis, wagner2015generating}, Moran spectral randomization (MSR) has only been recently applied to neuroimaging data \citep{paquola2020biorxiv, vosdewael2020brainspace, royer2020neuroimage}.
+Originally developed in the ecology literature \citep{dray2011geoanalysis, wagner2015generating}, Moran spectral randomization (MSR) has only been recently applied to neuroimaging data \citep{paquola2020plosbio, vosdewael2020brainspace, royer2020neuroimage}.
 Similar to the other parameterized data methods, MSR principally relies on a spatially-informed weight matrix $\mathbf{W}$, usually taking the form of an inverse distance matrix between brain regions.
-However, rather than using $\mathbf{W}$ to estimate parameters via a least-squares approach, MSR uses an eigendecomposition of $\mathbf{W}$ to compute Moran’s $I$, an estimate of spatial auto-correlation \citep{moran1950biometrika}.
-This estimate is then used to impose a similar spatial structure on random, normally distributed surrogate data.
+However, rather than using $\mathbf{W}$ to estimate parameters via a least-squares approach, MSR uses an eigendecomposition of $\mathbf{W}$ to compute spatial eigenvectors that provide an estimate of autocorrelation.
+These eigenvectors are then used to impose a similar spatial structure on random, normally distributed surrogate data.
 
 \paragraph*{Null model implementations}
 
 All parameterized data models require an input distance or weight matrix providing information about the spatial structure of the corresponding brain maps.
 In the present report we calculated vertex-vertex surface distance matrices on the pial surface of the fsaverage5 cortical mesh from FreeSurfer.
-Shortest paths on the surface were not allowed to traverse the medial wall (see \textit{Geodesic distances along the medial wall}).
-Parcel-parcel distance matrices were calculated for each atlas and resolution by averaging the distance between every vertex in two parcels.
-This parcel-parcel distance matrix was used without modification for the \textit{Burt-2018} and \textit{Burt-2020} methods.
-The inverse of the parcel-parcel distance matrix---with the diagonal set to 1---was used as an input for the \textit{Moran} method.
+Shortest paths on the surface were not allowed to traverse the medial wall (see \textit{Methods: Geodesic distances along the medial wall}).
+Parcel-parcel distance matrices were calculated for each parcellation and parcellation resolution by averaging the distance between every vertex in two parcels.
+The parcel-parcel \nimg{(or vertex-vertex)} distance matrix was used without modification for the \textit{Burt-2018} and \textit{Burt-2020} methods; the inverse of the distance matrix---with the diagonal set to 1---was used as an input for the \textit{Moran} method.
+\nimg{Although the use of the full, non-sparsified distance matrix for the \textit{Moran} method differs somewhat from its traditional application in neuroimaging research \citep{vosdewael2020brainspace, royer2020neuroimage, paquola2020plosbio}, we believe the methodology used in the current report should yield better-matched surrogates.
+Finally, note that the \textit{Burt-2020} method is unique amongst all the spatial parameterized data models in that it has several hyper-parameters that can be modified to control its performance.
+We use the default parameters provided by the BrainSMASH software \citep{burt2020neuroimage}, with the exception of those analyses of vertex-level data where we modify the \texttt{knn} parameter (see Fig.~\ref{supp-figure-burt-parameters}).}
 
-\subsection*{Analytic approaches}
+\subsection*{\nimg{Simulated data analyses}}
 
-Although there exist numerous methods for analyzing neuroimaging data, two common approaches involve (1) examining the correspondence between two (or more) distinct brain maps, and (2) investigating whether the spatial distribution of a given brain map is circumscribed by predefined partitions (e.g., intrinsic networks, cytoarchitectonic classes, etc).
-We conducted analyses for both of these approaches using two datasets (see \textit{Methods and Materials: Data}), examining the impact of each null framework on the statistical interpretation of the generated results.
-Null distributions for each framework were constructed from 10,000 permutations, rotations, or surrogates.
-When applicable, the same rotations were used across frameworks (e.g., for \textit{V{\'a}zquez-Rodr{\'i}guez}, \textit{V{\'a}{\v{s}}a}, and \textit{Hungarian}).
+\nimg{To examine the efficacy of the null frameworks we performed a series of controlled simulations with a known ``ground truth''.
+Directly adapting methodology used in \citet{burt2020neuroimage}, we derived pairs of brain maps with a specified Pearson correlation (target \emph{r} = 0.015 $\pm$ 0.005) from spatially-autocorrelated Gaussian random fields (GRFs).
+To generate each pair of brain maps we started by creating a pair of dense, three-dimensional GRFs.
+The spatial autocorrelation of the GRFs was varied across seven different levels by modifying the slope of the field's power spectral density ($\alpha$ = 0--3.0 in increments of 0.5, where zero indicates random Gaussian noise; see Appendix 2 of \citet{burt2020neuroimage} for information on the mathematical foundation of this approach).
+The pair of GRFs were projected to the fsaverage5 cortical mesh using FreeSurfer’s \texttt{mri\_vol2surf}, the medial wall was removed (i.e., set to NaN), and the resulting brain maps were correlated to ensure that they fell within the target correlation limits.
+We generated 1,000 pairs of brain maps at each level of spatial autocorrelation, resulting in 7,000 total pairs of maps with correlations in the range 0.145--0.155.
+These data were also parcellated with the Cammoun and Schaefer atlases to yield lower-resolution representations.}
+
+\nimg{To examine the comparative efficacy of the null models we applied each model to the simulated brain maps.
+For one map in each pair we used the given null method to generate 1,000 null maps, which we then correlated with the other map to yield a null distribution of correlation coefficients.
+We used this null distribution to estimate the two-tailed \emph{p}-value for the original correlation between the pair of maps.
+This process was repeated across all levels of spatial autocorrelation ($\alpha$) for each null framework, and was performed for the simulations at both the vertex-level fsaverage5 resolution and all Cammoun and Schaefer parcellation resolutions.
+We examined the generated \emph{p}-values as a function of the spatial autocorrelation, $\alpha$, of the simulated maps across all null frameworks.}
+
+\nimg{Next, we sought to assess the false positive rate (FPR) of each of the null frameworks.
+If we examine a set of randomly-correlated pairs of brain maps, each null framework should yield a FPR approximately equal to the chosen statistical alpha (i.e., a 5\% FPR when using an alpha of $p \leq 0.05$).
+To generate these sets of randomly-correlated brain map pairs we shuffled the brain map pairs from the previous analysis, destroying the original correlation structure.
+As in the previous analysis, for one map in each pair we used each null framework to generate 1,000 null maps, which we then correlated with the other map in the pair to yield a null distribution of correlation coefficients.
+We estimated the two-tailed \emph{p}-value of the original correlation, repeated this process for all brain map pairs across all levels of spatial autocorrelation ($\alpha$) for each null framework, and from all these \emph{p}-values we estimated the probability at which a given null framework would yield a significant test at the $p \leq 0.05$ threshold.
+We examined the generated probabilities as a function of spatial autocorrelation across all null frameworks.}
+
+\nimg{Note that for vertex-wise representations of the data all of the spatial permutation null models reduce to the original method proposed by \citet{alexanderbloch2018neuroimage}; however, where applicable we retain the \textit{V{\'a}zquez-Rodr{\'i}guez} label for consistency with results from the parcellated data.
+Finally, to ensure comparability across spatial permutation models, the same angular rotations were used across frameworks (e.g., for \textit{V{\'a}zquez-Rodr{\'i}guez}, \textit{V{\'a}{\v{s}}a}, and \textit{Hungarian}).}
+
+\subsection*{\nimg{Empirical data analyses}}
+
+\nimg{Following the analyses of simulated data, we examined the performance of the null frameworks on two empirical neuroimaging datasets.
+Here, our choice of datasets and associated analytic procedures were designed to replicate and extend analyses originally reported in \citet{alexanderbloch2018neuroimage} and \citet{burt2020neuroimage}.
+We use (1) data from NeuroSynth to examine the correspondence between multiple brain maps \citep[as in][]{alexanderbloch2018neuroimage}, and (2) data from HCP to examine whether the spatial distribution of a brain map is circumscribed by predefined partitions (e.g., intrinsic networks, cytoarchitectonic classes; as in \citealt{burt2020neuroimage}).
+Null distributions for each framework were constructed from 10,000 permutations, rotations, or surrogates, and when applicable, the same angular rotations were used across spatial permutation models (e.g., for \textit{V{\'a}zquez-Rodr{\'i}guez}, \textit{V{\'a}{\v{s}}a}, and \textit{Hungarian}).
+We analyze only parcellated data here to allow for better disambiguation between all ten null models.}
 
 \subsubsection*{Testing correspondence between brain maps (NeuroSynth)}
 
-Following \citet{alexanderbloch2018neuroimage}, NeuroSynth maps were correlated to generate a term $\times$ term (123 $\times$ 123) correlation matrix, indicating the extent to which pairs of cognitive terms share a similar spatial pattern; instead of using vertex-wise values as in the original publication, correlation matrices were generated from parcellated data (see \textit{Methods and Materials: Brain parcellations}).
+Following procedures outlined by \citet{alexanderbloch2018neuroimage}, NeuroSynth maps were correlated to generate a term $\times$ term (123 $\times$ 123) correlation matrix, indicating the extent to which pairs of cognitive terms share a similar spatial pattern; instead of using vertex-wise values as in the original publication, correlation matrices were generated from parcellated data (see \textit{Methods: Brain parcellations}).
 We applied each of the ten null frameworks to examine which of the resulting 7,503 unique correlations were significant.
-For each framework the NeuroSynth maps were permuted (or rotated / used to generate surrogate data, as appropriate) and re-correlated, yielding a 123 x 123 null correlation matrix  for each permutation representing the correlations between the original and null maps.
+For each framework the NeuroSynth maps were permuted (or rotated, or used to generate surrogate data, as appropriate) and re-correlated, yielding a 123 x 123 null correlation matrix  for each permutation representing the correlations between the original and null term maps.
 The largest absolute value (excluding the diagonal) of each permuted correlation matrix was retained and stored, generating a null distribution of 10,000 correlations; this procedure provides family-wise control for multiple comparisons \citep{alexanderbloch2018neuroimage, westfall1993resampling}.
-We used this null distribution to estimate the two-tailed \emph{p}-values for the correlations in the original term-by-term matrix, thresholding the matrix at $\alpha = 0.05$.
+We used this null distribution to estimate the two-tailed \emph{p}-values for the correlations in the original term-by-term matrix, thresholding the matrix at $p \leq 0.05$.
 
 For the naive parametric null method, we used the Student's \emph{t}-distribution to generate \emph{p}-values for each correlation between cognitive maps.
 For the parameterized null frameworks where surrogate data depend on the input brain maps, we constructed 10,000 surrogate maps separately for each cognitive term; to maintain consistency we used the same 10,000 random data vectors (e.g., $\mathbf{u}$ in Burt-2018, $\mathbf{z}$ in Burt-2020) for every term.
@@ -316,30 +375,10 @@ For the parameterized null frameworks where surrogate data depend on the input b
 
 Using parcellated T1w/T2w data \citep{vanessen2013neuroimage}, we calculated the average value of all parcels within each of seven intrinsic functional networks \citep{yeo2011organization} and seven cytoarchitectonic classes \citep{voneconomo1925cytoarchitecture, scholtens2018neuroimage}.
 We then applied each of the ten null frameworks to examine which of these averages were significantly higher or lower than would be otherwise expected.
-For each framework, the parcel values were permuted (or rotated / used to generate surrogate data, as appropriate) and re-averaged within the partitions, yielding a distribution of 10,000 null values for each network or class.
+For each framework, the parcel values were permuted (or rotated, or used to generate surrogate data, as appropriate) and re-averaged within the partitions, yielding a distribution of 10,000 null values for each network or class.
 We used these null distributions to estimate the two-tailed \emph{p}-values for the original partition averages at $\alpha = 0.05$.
 
 For the naive parametric null framework we used the Student's \emph{t}-distribution to generate \emph{p}-values, testing the distribution of parcel values for each network against zero, where the overall distribution of parcel values were z-scored prior to segregation into networks.
-
-\begin{figure*}[htp]
-  \begin{center}
-    \centerline{\includegraphics[width=0.95\textwidth]{neurosynth-results.png}}
-    \caption{
-      \textbf{Testing correspondence between brain maps |}
-      (a) ``Association test'' z-score brain maps for 123 terms were downloaded from NeuroSynth.
-      The parcellated term maps were correlated across brain regions to generate a term-by-term correlation matrix.
-      (b) Each null framework was applied to the original term maps to generate 10,000 null maps per term.
-      The original term maps were correlated with each of the null term maps to generate 10,000 null correlation matrices.
-      (c) The maximum absolute correlation in each null matrix (excluding the diagonal) was extracted and retained to create a null distribution of correlations.
-      This null distribution was used to threshold the original correlation matrix at an alpha of 0.05.
-      (d) The number of significant correlations in the thresholded term matrix for each of the null frameworks as a function of atlas and atlas resolution.
-      (e) The distributions of null correlations used to threshold the original term correlation matrix.
-      Distributions are shown for the highest scale parcellation ($N = 1000$ nodes) of each atlas for all of the null frameworks.
-      Refer to Fig.~\ref{supp-figure-naive-nulls}a for spatially-naive nulls and to Table~\ref{supp-table-ns-terms} for a full list of NeuroSynth terms used.
-      }
-    \label{figure-neurosynth-results}
-  \end{center}
-\end{figure*}
 
 \subsection*{Null model implementation variability}
 
@@ -350,73 +389,195 @@ We investigate two such choices: (1) definition of parcel centroids for the spat
 \subsubsection*{Variability in parcel centroid definition}
 
 We examined the impact of parcel centroid definition on three spatial permutation null models: \textit{V{\'a}zquez-Rodr{\'i}guez}, \textit{V{\'a}{\v{s}}a}, and \textit{Hungarian}.
-Parcel centroids were defined using three different techniques operating on the spherical representation of the fsaverage5 surface \citep{fischl1999humanbrainmap}: (1) averaging, (2) surface-projection averaging, and (3) geodesic distance minimization.
+Parcel centroids were defined using three different techniques operating on the spherical representation of the fsaverage5 surface \citep{fischl1999humanbrainmap}: (1) averaging, (2) averaging with surface-projection, and (3) geodesic distance minimization.
 In \textit{averaging}, the coordinates for all vertices belonging to a parcel were averaged and used to represent the parcel centroid without further modification \citep{vasa2018cercor}.
 Because the vertices are defined on a sphere, these averaged-coordinate centroids will always fall beneath the surface of the cortical mesh.
-To resolve this, \textit{surface-projection averaging} performs the same procedure as \textit{averaging} but then selects the coordinates of the closest vertex on the surface of the cortical mesh to represent the parcel centroid \citep{vazquezrodriguez2019pnas}.
-An alternative approach, \textit{geodesic distance minimization}, calculates the vertex-by-vertex geodesic distance matrix separately for each parcel.
+To resolve this, \textit{averaging with surface-projection} performs the same procedure as \textit{averaging} but then selects the coordinates of the closest vertex on the surface of the cortical mesh to represent the parcel centroid \citep{vazquezrodriguez2019pnas}.
+In the case of oblong or C-shaped parcels, however, surface-projected centroids may still fall outside the parcel boundaries.
+An alternative approach, \textit{geodesic distance minimization}, avoids this shortcoming by computing a vertex-by-vertex geodesic distance matrix separately for each parcel.
 Each distance matrix is averaged across columns and the coordinates of the vertex with the smallest average is used to represent the parcel centroid.
+\nimg{Parcellating data with non-spatially contiguous atlases (e.g., the Yeo-Krienen functional networks; \citealt{yeo2011organization}) is not recommended when defining parcel centroids for use with spatial permutation null models.}
 
 We generated ten sample reassignments for all nine combinations of parcel centroid definition method and the three aforementioned spatial permutation null models.
-The Hamming distance was used to compare the similarity between all generated reassignments \citep{hamming1950distance}.
+The \nimg{normalized} Hamming distance was used to compare the similarity between all generated reassignments \citep{hamming1950distance}, \nimg{which was computed as the proportion of those vector elements between any two reassignments which disagree:}
+
+\begin{equation*}
+   \nimg{d = \sum_{k=0}^{n} \frac{1 - \delta_{u_{k},v_{k}}}{n}}
+\end{equation*}
+
+\noindent \nimg{where \emph{u} and \emph{v} are any two reassignments of length \emph{n} and $\delta_{u_{k},v_{k}}$ is the Kronecker delta function which is 1 when \emph{u}$_k$ = \emph{v}$_k$ and 0 otherwise.}
 
 \subsubsection*{Geodesic distances along the medial wall}
 
 We also investigated the degree to which constraining calculation of surface-based distance matrices to disallow travel along the medial wall impacts the outcomes of parameterized data models.
-We generated two distance matrices for each parcellation and resolution, either (1) permitting or (2) disallowing the travelled paths to intersect the medial wall.
+We generated two distance matrices for each parcellation and resolution, either (1) permitting or (2) disallowing the travelled paths to cross the medial wall.
 Surface distance between vertices was calculated using Dijkstra's algorithm on a graph representing the pial cortical mesh of the fsaverage5 surface \citep{fischl1999humanbrainmap}.
 Parcel-to-parcel distance was calculated as the average distance between every surface vertex in two parcels.
 
-We used the generated distance matrices to create 1,000 surrogates for each parameterized data method, yielding 6,000 total surrogates (two distance matrices x three parameterized methods), and assessed the similarity of the resulting surrogates within each method using linear correlations.
+We used the generated distance matrices to create 1,000 surrogates for each parameterized data method, yielding 6,000 total surrogates (two distance matrices times three parameterized methods), and assessed the similarity of the resulting surrogates within each method using linear correlations.
+\nimg{Statistics for the correlations were calculated by first transforming the correlations using the Fisher z-transform, estimating (1) the mean and (2) the 2.5 and 97.5\% CI of the transformed estimates (via 10,000 bootstraps), and then applying the inverse Fisher z-transform to these estimates.}
 As the parameterized data models require an input brain map we used the parcellated T1w/T2w data to generate these surrogates.
 
 \section*{RESULTS}
 
 \begin{figure*}[htp]
   \begin{center}
-    \centerline{\includegraphics[width=\textwidth]{hcp-results.png}}
+    \centerline{\includegraphics[width=\textwidth]{simulation_results.png}}
+    \caption{
+      \nimg{\textbf{Null model performance on simulated brain maps |}
+      (a) Four maps derived from the same Gaussian random field (GRF) with increasing levels of spatial autocorrelation.
+      The map corresponding to $\alpha$ = 0.0 represents random Gaussian noise.
+      (b) An example pair of simulated brain maps ($\alpha$ = 2.0) correlated at \emph{r} = 0.15 $\pm$ 0.005.
+      (c) Average null model performance on 1,000 simulations across all seven levels of spatial autocorrelation.
+      Colored lines and shaded regions on each plot represent the mean and 95\% confidence interval.
+      The Cammoun and Schaefer atlas results are shown for the highest resolution (1,000 parcels) only.
+      The dashed black line corresponds to \emph{p} = 0.05 (where values beneath the line indicate \emph{p} > 0.05).
+      The spatially-naive parametric results are not depicted as they are largely indistinguishable from \emph{p} = 0 and approach infinity on the provided scale.
+      Note that the so-called \textit{V{\'a}zquez-Rodr{\'i}guez} method is identical to the framework proposed by \citet{alexanderbloch2018neuroimage} when used at the fsaverage5 resolution; we retain the former name for consistency with the parcellated results, and thus only show vertex-level results for this spatial permutation method.
+      (d) Distributions of correlations between randomized brain map pairs for different levels of spatial autocorrelation.
+      Correlations are shown for vertex (fsaverage5) representations of the data.
+      (e) False positive rate (FPR) for each null model across 1,000 simulations as a function of spatial autocorrelation.
+      Line colors correspond to the legend shown alongside panel (c).
+      The dashed black line corresponds to the expected FPR of five percent.
+      Note that the spatially-naive null models (parametric and non-parametric) are almost completely overlapping on this plot.
+      For the AUC of each null model refer to Table~\ref{supp-table-sim-auc}.}
+      }
+    \label{figure-simulation-results}
+  \end{center}
+\end{figure*}
+
+We performed four analyses to investigate the impact of ten null models on controlling the FWER in statistical assessments of brain data.
+
+\subsection*{\nimg{Null model performance on simulated brain maps}}
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{moran_results.png}}
+    \caption{
+      \nimg{\textbf{Null models differentially retain autocorrelation of simulated data |}
+      Left panel (a-d): spatial autocorrelation estimates of 10,000 simulated maps, estimated via Moran’s I, for fsaverage5, Cammoun atlas (1,000 parcel resolution), and Schaefer atlas (1,000 parcel resolution).
+      Right panel (a-d): spatial autocorrelation estimates of 10,000 null maps, generated from one simulated map, for each null method for all three data resolutions.
+      Colored text in each plot indicates the Moran’s I of the simulated map used to generate the null maps.
+      Plots (a-d) represent data for different levels of spatial autocorrelation of the underlying simulated GRFs ($\alpha$ = 0.0, 1.0, 2.0, and 3.0).
+      Note that when applied to vertex-wise fsaverage5 data all of the spatial permutation null methods are identical to the technique proposed in \citet{alexanderbloch2018neuroimage} (see \textit{Methods: Null model frameworks}); we retain the \textit{V{\'a}zquez-Rodr{\'i}guez} label for consistency with results from the parcellated data, and thus only show vertex-level results for this spatial permutation method.}
+      }
+    \label{figure-moran-results}
+  \end{center}
+\end{figure*}
+
+\nimg{To quantitatively assess how the null models perform on data with a known ``ground truth'' we performed a series of controlled simulations.
+First, directly adapting methodology from \citet{burt2020neuroimage}, we simulated 1,000 pairs of correlated brain maps (\emph{r} = 0.15) derived from Gaussian random fields (GRFs) across seven different degrees of spatial autocorrelation ($\alpha$; Fig.~\ref{figure-simulation-results}a,b).
+We applied each null framework to every pair of brain maps to generate 1,000 null maps per pair, yielding one million null maps per null framework per level of spatial autocorrelation (although we find that the exact number of null maps does not meaningfully influence our results, Fig.~\ref{supp-figure-nnulls-results}).
+We used these nulls to generate a two-tailed \emph{p}-value on the original correlation between each brain map pair.}
+
+\nimg{Examination of \emph{p}-values from the simulated data shows generally comparable performance across spatially-constrained null frameworks (Fig.~\ref{figure-simulation-results}c; red and blue lines).
+At lower levels of spatial autocorrelation ($\alpha \leq 1.5$), spatially-constrained null models fare equivalently to spatially-naive models (Fig.~\ref{figure-simulation-results}c; purple lines); however, at higher levels of spatial autocorrelation ($\alpha > 1.5$), spatially-constrained nulls yield more conservative statistics.
+Although parcellating the vertex-level brain map pairs modifies their correlation structure, parcellated results are consistent with those observed in vertex-wise data (Fig.~\ref{supp-figure-simulation-correlations})}.
+
+\nimg{Next, to investigate the false-positive rate (FPR) of the null models, we took the simulated brain map pairs from the previous analysis and shuffled them, yielding pairs of randomly-correlated brain maps.
+At low levels of spatial autocorrelation ($\alpha \leq 2$), the distribution of correlations between the randomized brain map pairs are tightly centered on \emph{r} = 0.0; however, with increasing levels of spatial autocorrelation ($\alpha > 2$) the variance of the correlation distribution increases dramatically (Fig.~\ref{figure-simulation-results}d).
+In other words, at high levels of spatial autocorrelation two randomly-chosen brain maps are more likely to be strongly correlated.
+To test whether the null frameworks can adequately control for this broadening of the correlation distribution, we re-applied each framework to all randomized pairs of brain maps, generating a \emph{p}-value distribution for each framework.
+We then assessed the probability with which a given framework would yield a \emph{p}-value less than 0.05 (which, in this case, amounts to the false-positive rate; FPR).}
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{neurosynth_results.png}}
+    \caption{
+      \textbf{Testing correspondence between brain maps |}
+      (a) ``Association test'' z-score brain maps for 123 terms were downloaded from NeuroSynth.
+      The parcellated term maps were correlated across brain regions to generate a term-by-term correlation matrix.
+      Each null framework was applied to the original term maps to generate 10,000 null maps per term.
+      The original term maps were correlated with each of the null term maps to generate 10,000 null correlation matrices.
+      The maximum absolute correlation in each null matrix (excluding the diagonal) was extracted and retained to create a null distribution of correlations.
+      This null distribution was used to threshold the original correlation matrix at $p \leq 0.05$.
+      (b, c) The number of significant correlations in the thresholded term matrix for each of the null frameworks as a function of atlas (panel b: Cammoun atlas; panel c: Schaefer atlas) and atlas resolution.
+      Refer to Table~\ref{-ns-terms} for a full list of NeuroSynth terms used.}
+    \label{figure-neurosynth-results}
+  \end{center}
+\end{figure*}
+
+\nimg{When there is no spatial autocorrelation present in the data ($\alpha$ = 0.0) all the models perform equivalently, with a FPR around the expected 5\%; however, as the spatial autocorrelation increases the FPR of the models begins to diverge (Fig.~\ref{figure-simulation-results}e).
+Unsurprisingly, spatially-naive models quickly reach a FPR near 100\% (Fig.~\ref{figure-simulation-results}e; purple lines), mirroring previously-reported results \citep{burt2020neuroimage}.
+Perhaps more notably: all of the spatially-constrained null models have inflated FPRs at higher levels of spatial autocorrelation ($\alpha \geq 2.0$; Fig.~\ref{figure-simulation-results}e; red and blue lines).
+At the highest level of spatial autocorrelation even the most conservative null models have a FPR of approximately 13\% (fsaverage5: 13.5\%; Cammoun: 13.3\%; Schaefer: 13.1\%).
+Moreover, at these higher levels of spatial autocorrelation, significant differences appear between the families of spatially-constrained null models, with the parameterized data models displaying elevated FPR compared to spatial permutation models.
+We find that the impact of spatial autocorrelation on FPR and these differences between null models is consistent across different parcellation resolutions (Fig.~\ref{supp-figure-simulation-parcellations}).
+Note also that for the \textit{Burt-2020} model we find that parameter selection seems to influence the resulting FPR (Fig.~\ref{supp-figure-burt-parameters}).}
+
+\nimg{To examine whether the observed differences between null model performance arise from poorly-constructed null maps, we examined how well the nulls generated by each framework captured the spatial autocorrelation of the original data.
+We calculated the Moran's I of 10,000 simulated brain maps at each level of spatial autocorrelation (Fig.~\ref{figure-moran-results}a-d, left panel) and, for one simulation at each level of spatial autocorrelation, calculated the Moran's I of 10,000 null maps generated by each of the null frameworks (Fig.~\ref{figure-moran-results}a-d, right panels).}
+
+\nimg{Differences in the Moran's I of the simulated brain maps are large between the different levels of spatial autocorrelation ($\alpha$)---as would be expected since the $\alpha$ is being experimentally modified---but nominal between vertex-wise and parcellated data.
+The Moran's I of the null maps, on the other hand, seems to vary as a function of both framework and spatial autocorrelation.
+Within the spatial permutation null frameworks we observe a general split in method performance: the \textit{V\'a\v{s}a} and \textit{Hungarian} methods behave more similarly in comparison to the \textit{V{\'a}zquez-Rodr{\'i}guez}, \textit{Baum}, and \textit{Cornblath} methods.
+The former methods are performing ``perfect'' permutations, which come at the expense of the relative spatial orientation (and therefore the spatial autocorrelation) of the input data, whereas the latter methods attempt to more closely retain the spatial orientation at the cost of slightly modifying the underlying data distribution (via e.g., duplicate reassignments).
+Interestingly, the Moran's I statistics of the null maps generated with the \textit{Moran} framework---which is designed such that the null maps should \emph{explicitly} match the Moran's I of the input brain maps---have perhaps the closest correspondence to the input brain maps of all the null models; however, as previously observed, the FPR of the \textit{Moran} method remains categorically higher than the FPR of all the spatial permutation frameworks (Fig.~\ref{figure-simulation-results}e).
+This discrepancy suggests that optimal signal detection may not solely depend on matching spatial autocorrelation, but also on matching other features of the input brain maps including higher-order correlations or spatial nonstationarities (see \emph{Discussion}).}
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{hcp_results.png}}
     \caption{
       \textbf{Testing partition specificity | }
       (a) Parcellated T1w/T2w data from the Human Connectome Project were subjected to each of the described null frameworks, yielding 10,000 null T1w/T2w brain maps per framework.
-      Parcels were averaged within each of the seven Yeo resting state networks \citep{yeo2011organization} for both the empirical (i.e., real) T1w/T2w brain map (blue dot) and the 10,000 null maps for each framework (white boxplot).
+      Parcels were averaged within each of the seven Yeo-Krienen functional resting-state networks \citep{yeo2011organization} for both the empirical (i.e., real) T1w/T2w brain map (blue dot) and the 10,000 null maps for each framework (white boxplot).
       Null distributions were used to normalize the empirical values, yielding a single z-score per network.
-      A $p$-value was computed for each network as the proportion of null T1w/T2w network values that exceeded the real T1w/T2w value, divided by the total number of nulls.
-      Networks with a $p$-value < 0.05 are shown in red.
-      (b) The procedure described in panel (a) was performed for each of the null frameworks for both the Cammoun (top row) and Schaefer (bottom row) atlases.
-      Results are shown for the highest scale parcellation ($N = 1000$ nodes) of each atlas.
-      Yeo networks are shown from left-to-right in the same top-to-bottom order as in panel (a).
+      A \emph{p}-value was computed for each network as the proportion of null T1w/T2w network values more extreme than the real T1w/T2w value, divided by the total number of nulls.
+      Networks with a \emph{p}-value < 0.05 are shown in red.
+      (b, c) The procedure described in panel (a) was performed for each of the null frameworks for both the Cammoun (panel b) and Schaefer (panel c) atlases.
+      Results are shown for the highest scale parcellation (1,000 parcels) of each atlas.
+      Yeo-Krienen networks are shown from left-to-right in the same top-to-bottom order as in panel (a).
       Network assignments: sm = somatomotor, vis = visual, da = dorsal attention, fp = frontoparietal, lim = limbic, dn = default network, va = ventral attention.
       }
     \label{figure-hcp-results}
   \end{center}
 \end{figure*}
 
-We performed two analyses to investigate the impact of ten null models on controlling the FWER in statistical assessments of parcellated brain data.
-We briefly describe both analyses below and provide an overview of each of the ten null models in Table~\ref{table-null-models} (refer to \emph{Methods and Materials} for more information; see Fig.~\ref{figure-null-frameworks} for an example null map from each model).
-
 \subsection*{Testing correspondence between brain maps}
 
-We first investigate how each of the ten null models performs in a prototypical correspondence analysis, in which a user assesses the spatial correlation between two brain maps.
-As an example, we test correlations between meta-analytic functional activations.
+\nimg{Next, we sought to investigate how the null models perform on two prototypical analyses applied to empirical datasets from the neuroimaging literature.}
+We first examine how each of the ten null models performs when testing the correlations between meta-analytic functional activations.
 Following \citet{alexanderbloch2018neuroimage}, we parcellated meta-analytic ``association'' maps for 123 cognitive terms derived from NeuroSynth \citep{yarkoni2011natmethods, poldrack2011frontiers}.
 We used the term-specific association maps to construct a term $\times$ term linear correlation matrix, indicating the extent to which pairs of terms share a similar spatial pattern (Fig.~\ref{figure-neurosynth-results}a).
 We then applied each null model to generate a population of null term $\times$ term correlation matrices (Fig.~\ref{figure-neurosynth-results}b).
 Finally, we constructed a null distribution by retaining the maximum absolute correlation coefficient from each of the null term $\times$ term matrices, excluding the diagonal elements (Fig.~\ref{figure-neurosynth-results}c).
 This procedure yielded distributions of null correlations for each null model, which were used to threshold the empirical term $\times$ term correlation matrix \citep{alexanderbloch2018neuroimage}.
 
-Figs.~\ref{figure-neurosynth-results}d show the number of statistically significant correlations that remained in the term-by-term matrix after thresholding.
-All comparisons were performed at $\alpha=0.05$.
-Results are organized according to two commonly-used parcellations of the cerebral cortex grey matter: one anatomical \citep{desikan2006automated, cammoun2012mapping} and one functional \citep{schaefer2018cercor}.
-To test the interaction between null model and parcellation resolution, analyses were repeated at multiple resolutions (5 resolutions for the Cammoun Atlas; 10 resolutions for the Schaefer atlas).
+Fig.~\ref{figure-neurosynth-results}b,c show the number of statistically significant correlations that remained in the term-by-term matrix after thresholding.
+All comparisons were performed at $p \leq 0.05$.
+To test the interaction between null model and parcellation resolution, we highlight results across all resolutions of the Cammoun and Schaefer parcellations (5 resolutions for the Cammoun atlas; 10 resolutions for the Schaefer atlas).
 
-Altogether, we find consistent differences between null models (Fig.~\ref{figure-neurosynth-results}d,e and Fig.~\ref{supp-figure-naive-nulls}a).
-In particular, some of the methods are more liberal, yielding higher numbers of significant correlations (e.g. \textit{Burt-2020}, \textit{V\'a\v{s}a}), while others are consistently more conservative (\textit{Burt-2018}, \textit{Cornblath}).
-Interestingly, these differences across null models do not appear to break down according to null model ``family'', with instances of spatial permutation and parameterized data nulls appearing as both more conservative and more liberal.
+Altogether, we find notable differences between null models.
+\nimg{Mirroring results from our simulation analyses, both the parametric and non-parametric spatially-naive models yield unrealistically liberal results.}
+Within the spatially-constrained nulls, some of the methods are slightly more liberal, yielding higher numbers of significant correlations (e.g. \textit{Burt-2020}, \textit{V\'a\v{s}a}), while others are consistently more conservative (\textit{Burt-2018}, \textit{Cornblath}).
+These differences do not appear to break down according to null model family \nimg{as they did in the previous analyses,} with instances of spatial permutation and parameterized data nulls appearing as both more conservative and more liberal.
 Moreover, although there are differences among null models, the relative ordering of the null models is stable across multiple parcellation atlases and resolutions, suggesting that models perform consistently across multiple node definitions.
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{network_results.png}}
+    \caption{
+      \textbf{Partition-specific definition of T1w/T2s maps |}
+      (a) Overview of the results assessing partition specificity of T1w/T2w measurements.
+      Each cell in the heatmap represents the T1w/T2w z-score for a given network (x-axis) and atlas / resolution (y-axis).
+      \nimg{Black outlines around a cell represent network z-scores that are significant at the $p \leq 0.05$ level.}
+      Note that the fifth and fifteenth row of each heatmap represent the same values shown in Fig.~\ref{figure-hcp-results}b.
+      (b) The network labels for both the seven Yeo-Krienen resting state networks \citep{yeo2011organization} and the seven von Economo-Koskinas cytoarchitectonic classes \citep{voneconomo1925cytoarchitecture, scholtens2018neuroimage}.
+      (c, d) The results for all ten null models for all atlases and resolutions for the (c) Yeo-Krienen resting state networks and (d) von Economo cytoarchitectonic classes.
+      While there is some notable variation amongst atlases and resolutions, primary differences are observable between null frameworks and partitions.
+      \nimg{Naive parametric heatmaps represent partition means, not z-scores, and values range from -1--+1.
+      Naive non-parametric heatmap values range from -7.5--+7.5, while all other null model heatmaps range from -2.5--+2.5].}
+      Yeo-Krienen resting state networks: 1 = somatomotor, 2 = visual, 3 = dorsal attention, 4 = frontoparietal, 5 = limbic, 6 = default, 7 = ventral attention.
+      von Economo cytoarchitectonic classes: 1 = primary sensory cortex, 2 = primary motor cortex, 3 = primary/secondary sensory cortex, 4 = association cortex, 5 = insular cortex, 6 = association cortex, 7 = limbic regions.
+    }
+    \label{figure-network-results}
+  \end{center}
+\end{figure*}
 
 \subsection*{Testing partition specificity}
 
-We next compare null models on tests of partition specificity, in which a user examines whether a spatial feature (e.g. cortical thickness, intracortical myelin, functional connectivity strength) is significantly more concentrated in a partition of interest (e.g. in a specific intrinsic functional network or cytoarchitectonic class).
+We next compare null models on tests of partition specificity, in which a researcher examines whether a spatial feature (e.g., cortical thickness, intracortical myelin, functional connectivity strength) is significantly more concentrated in a partition of interest (e.g., in a specific intrinsic functional network or cytoarchitectonic class).
 Specifically, we tested whether the spatial distribution of the T1w/T2w ratio---thought to reflect intracortical myelin \citep{glasser2011jneuro}---is circumscribed by intrinsic functional \citep{yeo2011organization} or cytoarchitectonic \citep{voneconomo1925cytoarchitecture, scholtens2018neuroimage} network boundaries.
 
 We first calculated the mean T1w/T2w ratio for all constituent parcels in the seven intrinsic networks derived by \citet{yeo2011organization} (Fig.~\ref{figure-hcp-results}a).
@@ -424,46 +585,35 @@ We then used each of the null models to generate a distribution of network-speci
 Finally, each empirical network mean was expressed as a z-score relative to its respective null distribution.
 A network-specific $p$-value was estimated by computing the proportion of absolute-valued null network means that were greater than the absolute-valued empirical network mean (Fig.~\ref{figure-hcp-results}a), quantifying the probability that the T1w/T2w ratio is significantly greater or smaller in a particular network, above and beyond the network's size, symmetry, etc.
 
-Fig.~\ref{figure-hcp-results}b shows network-specific z-scores for T1w/T2w ratios.
-Intrinsic networks with statistically significant (two-tailed, $\alpha=0.05$) mean T1w/T2w ratios are shown in red, and non-significant networks are shown in grey.
-As described above, we repeated all comparisons for two commonly-used multi-scale parcellations \citep{desikan2006automated, cammoun2012mapping, schaefer2018cercor}.
-
-
-\begin{figure*}[htp]
-  \begin{center}
-    \centerline{\includegraphics[width=\textwidth]{network-results.png}}
-    \caption{
-      \textbf{Partition-specific definition of T1w/T2s maps |}
-      (a) Overview of the results assessing partition specificity of T1w/T2w measurements.
-      Each cell in the heatmap represents the T1w/T2w z-score for a given network (x-axis) and atlas / resolution (y-axis).
-      Bold colors represent network z-scores that are significant at the $\alpha = 0.05$ level.
-      Note that the fifth and fifteenth row of each heatmap represent the same values shown in Fig.~\ref{figure-hcp-results}b.
-      (b) The network labels for both the seven Yeo resting state networks \citep{yeo2011organization} and the seven von Economo-Koskinas cytoarchitectonic classes \citep{voneconomo1925cytoarchitecture, scholtens2018neuroimage}.
-      (c, d) The results for all eight spatially-constrained null models for all atlases and resolutions for the (c) Yeo resting state networks and (d) von Economo cytoarchitectonic classes.
-      While there is some notable variation amongst atlases and resolutions, primary differences are observable between null frameworks and partitions.
-      Refer to Fig.~\ref{supp-figure-naive-nulls}b for spatially-naive nulls.
-      Yeo resting state networks: 1 = somatomotor, 2 = visual, 3 = dorsal attention, 4 = frontoparietal, 5 = limbic, 6 = default, 7 = ventral attention.
-      von Economo cytoarchitectonic classes: 1 = primary sensory cortex, 2 = primary motor cortex, 3 = primary/secondary sensory cortex, 4 = association cortex, 5 = insular cortex, 6 = association cortex, 7 = limbic regions.
-    }
-    \label{figure-network-results}
-  \end{center}
-\end{figure*}
+Fig.~\ref{figure-hcp-results}b,c shows network-specific z-scores for T1w/T2w ratios.
+Intrinsic networks with statistically significant (two-tailed, $p \leq 0.05$) mean T1w/T2w ratios are shown in red, and non-significant networks are shown in grey.
+We repeated these comparisons for all resolutions of the Cammoun and Schaefer atlases.
 
 We observe three broad trends.
-First, null models are generally consistent in terms of effect direction and relative ordering of network z-scores: most methods identify over-expression of T1w/T2w ratio in the somatomotor and visual networks, and under-expression of T1w/T2w ratios in the ventral attention, default, frontoparietal and limbic networks (Fig.~\ref{figure-hcp-results}b).
+First, null models are generally consistent in terms of effect direction and relative ordering of network z-scores: most methods identify over-expression of T1w/T2w ratio in the somatomotor and visual networks, and under-expression of T1w/T2w ratios in the ventral attention, default, frontoparietal and limbic networks (Fig.~\ref{figure-hcp-results}b,c).
 Second, despite these similarities, individual null models are inconsistent in the statistical inferences they provide: the number and identity of significant networks varies considerably from model to model.
 Third, the models are variable in terms of how conservative they are.
-Some models identify only 1/7 significant networks (e.g. \textit{V\'azquez-Rodr\'iguez}), while others identify 6/7 significant networks (e.g. \textit{Burt-2020}, Schaefer atlas).
-In contrast to results in the previous section, differences among models appear to break down according to model family, with spatial permutation null models being more conservative (\textit{V\'azquez-Rodr\'iguez}, \textit{Baum}, \textit{Cornblath}) and parameterized nulls more liberal (e.g., \textit{Burt-2018} and \textit{Burt-2020}).
+\nimg{Mirroring results from simulations,} and in contrast to results using NeuroSynth data, differences among models appear to largely break down according to model family, with spatial permutation null models tending to be more conservative (\textit{V\'azquez-Rodr\'iguez}, \textit{Baum}, \textit{Cornblath}) and parameterized nulls more liberal (e.g., \textit{Burt-2018} and \textit{Burt-2020}).
+\nimg{These distinctions between model families are additionally apparent in the shape of the underlying null distributions generated by each framework (Fig.~\ref{supp-figure-hcp-nulls-example}).}
 
-We also investigate differences between parcellation atlas resolutions and network partitions.
+We also investigate differences between parcellation resolution and network partitions.
 Fig.~\ref{figure-network-results}a shows results for a structural and functional atlas (Cammoun and Schaefer) across 5 and 10 resolutions, respectively.
 The means are expressed as z-scores relative to a null distribution generated by a given method, and were computed for seven intrinsic functional networks \citep{yeo2011organization}, as well as seven cytoarchitectonic classes \citep{voneconomo1925cytoarchitecture, scholtens2018neuroimage} (Fig.~\ref{figure-network-results}b).
-The null model-, atlas-, resolution- and partition-specific z-scores are displayed in Fig.~\ref{figure-network-results}c and d (naive nulls are shown in Fig.~\ref{supp-figure-naive-nulls}b).
+The null model-, parcellation-, resolution- and partition-specific z-scores are displayed in Fig.~\ref{figure-network-results}c and d.
 Overall, the findings are consistent with the intuitions drawn above.
-Namely, we continue to observe consistency across nulls in terms of effect direction and ordering, and inconsistency in the number and identity of significant partitions; however, there is less differentiation between the spatial permutation and parameterized data null models.
-Although not specifically related to differences between models, we also note an example of how atlas and partition may potentially interact and lead to different inferences.
-Class \#7 of the von Economo partition (limbic regions) is consistently deemed to be significantly under-enriched for T1w/T2w across Cammoun-derived parcellations, while it is generally not statistically significant across Schaefer-derived parcellations (Fig.~\ref{figure-network-results}d).
+Namely, we continue to observe consistency across nulls in terms of effect direction and ordering, and inconsistency in the number and identity of significant partitions; however, there is less differentiation between the spatial permutation and parameterized data null model families for the von Economo partition classes.
+\nimg{This consistency across null frameworks may indicate that the von Economo partitions provide a truer or more accurate delineation of T1w/T2w data than the Yeo-Krienen networks.}
+Although not specifically related to differences between models, we also note an example of how atlas and partition may potentially interact and lead to different inferences: class \#7 of the von Economo partition (limbic regions) is consistently deemed to be significantly under-enriched for T1w/T2w across Cammoun-derived parcellations, while it is generally not statistically significant across Schaefer-derived parcellations (Fig.~\ref{figure-network-results}d).
+
+\nimg{One notable disadvantage of the \textit{Baum} and \textit{Cornblath} spatial permutation null models is that the rotations on which they rely will cause the medial wall to be displaced into the cortical sheet.
+The resulting null distributions can have missing data for this portion of the cortex (Fig.~\ref{figure-null-frameworks}), yielding uneven sample sizes between null distributions and potentially biasing results, especially if one partition or networks is impacted more than others.
+To investigate whether this may have influenced the presented results we re-ran all partition specificity analyses for the \textit{Baum} and \textit{Cornblath} methods, discarding rotations where there was excessive data loss due to the rotation of the medial wall, and find comparable results (Fig.~\ref{supp-figure-baum-cornblath-networks}).}
+
+% \nimg{Altogether, results from this analysis highlights that claims about network specificity must be accompanied by appropriate statistical testing.
+% Although consistent observations have been made for T1w/T2w (e.g., over-enrichment in somatomotor areas and under-enrichment in association cortex; \citealt{burt2018natneuro}), we demonstrate here that the choice of null model can influence the statistical inferences about partition specificity.
+% Examining, the hypothesis of over-enrichment in the somatomotor network and under-enrichment in the ventral attention network, we see that six null models---\textit{naive parametric}, \textit{naive non-parametric}, \textit{Váša}, \textit{Hungarian}, \textit{Burt-2020}, and \textit{Moran}---yield confirmatory findings.
+% However, this view is misleading, as focusing on only these hypotheses ignores, for example, the overly-liberal findings of the spatially-naive models whose results almost certainly include several false-positives.
+% Constraining our interpretation of null model performance in these analyses based on \emph{a priori} hypotheses will potentially obscure meaningful differences between the frameworks.}
 
 \begin{figure*}[htp]
   \begin{center}
@@ -471,10 +621,13 @@ Class \#7 of the von Economo partition (limbic regions) is consistently deemed t
     \caption{
       \textbf{Implementation of null models can impact performance |}
       (a) The impact of parcel centroid definition on three spatial permutation null models.
-      Heatmaps show the correspondence (Hamming distance) between null reassignments generated using different null frameworks and parcel centroid methods, where lower values (blue colors) indicate greater correspondence.
+      Heatmaps show the correspondence (normalized Hamming distance) between null reassignments generated using different null frameworks and parcel centroid methods, where lower values (purple) indicate greater correspondence.
       The heatmaps are broken into nine sections (black outlines) which delineate different null frameworks; cells within each section represent the different parcel centroid methods.
-      For results from all resolutions of the Cammoun and Schaefer atlases refer to \ref{supp-figure-parcel-centroids}.
-      (b) Example surrogates generated from distances matrices allowing (``with medial'') and disallowing (``without medial'') surface distance travel along the medial wall for three parameterized data null models (Burt-2018, Burt-2020, and Moran).
+      For results from all resolutions of the Cammoun and Schaefer atlases refer to Fig.~\ref{supp-figure-parcel-centroids}.
+      (b) Example surrogates generated from distances matrices allowing (``with medial'') and disallowing (``without medial'') travel along the medial wall for the three parameterized data null models (\textit{Burt–2018}, \textit{Burt–2020}, and \textit{Moran}).
+      \nimg{Arrows indicate parcels where values are discrepant between pairs of surrogates for each method.
+      (c) Scatterplots of parcel values for surrogates generated with / without medial wall travel. }
+      Note: ``Cammoun atlas'' refers to the 219-parcel resolution and ``Schaefer atlas'' to the 200-parcel resolution.
     }
     \label{figure-implementation-differences}
   \end{center}
@@ -482,8 +635,8 @@ Class \#7 of the von Economo partition (limbic regions) is consistently deemed t
 
 \subsection*{Implementation of null models can impact performance}
 
-While the presented results suggest that, at a broad level, selection of null model framework is an important choice for researchers, it is by no means the only choice that can impact analytical results.
-Here, we investigate how different implementations and seemingly minor methodological choices of individual spatial permutation and parameterized data null models can influence statistical outcomes.
+While the presented results suggest that, at a broad level, selection of null model framework is an important choice for researchers, there are additional choices to be made within each framework.
+Here, we investigate how different implementations and seemingly minor methodological choices of spatial permutation and parameterized data null models can influence statistical outcomes.
 
 \subsubsection*{Variability in parcel centroid definition}
 
@@ -495,21 +648,18 @@ An alternative approach to account for this possibility is to find the coordinat
 
 We assessed the extent to which these three different methods of parcel centroid definition impacted the generated rotations for the three relevant null models.
 We generated ten rotation matrices and applied them to the coordinates derived from each of these three parcel centroid definition methods, reassigning parcels using the approach from each of the three relevant null frameworks.
-We compared the similarity of the reassignments using the Hamming distance (Fig.~\ref{figure-implementation-differences}a; \citealt{hamming1950distance}).
+We compared the similarity of the reassignments using the \nimg{normalized} Hamming distance (Fig.~\ref{figure-implementation-differences}a; \citealt{hamming1950distance}).
 Critically, because the same rotations were applied for every model and method, any observed differences are a result of variation in either the parcel centroid coordinates or models themselves.
 
-Fig.~\ref{figure-implementation-differences}a shows the Hamming distance between reassignments for all combinations of these parcel centroid and null framework methods across the Cammoun and Schaefer atlases (219 and 200 nodes, respectively; refer to \ref{supp-figure-parcel-centroids} for all resolutions).
+Fig.~\ref{figure-implementation-differences}a shows the Hamming distance between reassignments for all combinations of these parcel centroid and null framework methods across the Cammoun and Schaefer atlases (219 and 200 nodes, respectively; refer to Fig.~\ref{supp-figure-parcel-centroids} for all resolutions).
 Predictably, we observe the strongest differences between reassignments generated from the different null methods.
 In particular, the \textit{V{\'a}{\v{s}}a} null method seems to markedly differ from the \textit{V{\'a}zquez-Rodr{\'i}guez} and \textit{Hungarian} methods.
 In addition, there is also variation between parcel centroid calculation methods; for example, the \textit{V{\'a}{\v{s}}a} method seems to have only moderate correspondence between different parcel centroid definitions.
-Altogether, these results highlight important differences not only between spatial permutation null models but within the implementation of each model itself.
+These results highlight important differences not only between spatial permutation null models but within the implementation of each model itself.
 
 \subsubsection*{Geodesic distances along the medial wall}
 
-One notable disadvantage of spatial permutation null models is that the rotations on which they rely will cause the medial wall to be displaced into the cortical sheet (Fig.~\ref{figure-null-frameworks}).
-The resulting null distribution will have missing data for this portion of the cortex and discarded data for the cortex rotated into the medial wall, yielding uneven sample sizes between null distributions and potentially biasing results (refer to \citealt{burt2020neuroimage} for an illustration of this concept).
-
-While the family of parameterized data models do not rely on rotations and thus are not subject to this constraint, they do rely on a user-defined weight matrix that provides an estimation of the spatial structure of the related brain maps.
+Parameterized data models rely on a user-defined weight matrix that provides an estimation of the spatial structure of the related brain maps.
 In most cases---as in the current report---this weight matrix takes the form of a geodesic- or surface-based distance matrix calculated from shortest paths taken along the surface mesh projection of a brain.
 However, the calculation of these distance matrices often fails to take into account that paths along the brain's medial wall, where the cortical sheet is discontinuous due to underlying white matter and subcortical nuclei, should not be possible.
 Failing to account for this discontinuity yields distance matrices that categorically underestimate the actual distance between many brain regions.
@@ -517,56 +667,107 @@ Failing to account for this discontinuity yields distance matrices that categori
 We tested the extent to which generating distance matrices (dis-)allowing travel along the medial wall biases the surrogate data maps generated from the three parameterized null models.
 Fig.~\ref{figure-implementation-differences}b shows an example surrogate map for these null models for the Cammoun and Schaefer atlases.
 Overall, surrogates generated from the different distance matrices show strong similarities.
-To examine this in more detail we correlated 1,000 surrogates generated from the two distance matrices for each method, and found relatively moderate to high correspondence: 0.85 $\pm$ 0.27 (\textit{Burt-2018}), 0.85 $\pm$ 0.15 (\textit{Burt-2020}), 0.94 $\pm$ 0.04 (\textit{Moran}) (mean $\pm$ standard deviation across all atlases and resolutions).
-Altogether, although parameterized data nulls seem relatively robust to this issue, how to handle the medial wall when constructing the required distance matrices is still an important choice for researchers to make when implementing these models.
+To examine this in more detail we correlated 1,000 surrogates generated from the two distance matrices for each method, \nimg{finding remarkably high, though not perfect, correspondence: \emph{r} = 0.9618 [0.9615--0.9622] (\textit{Burt-2018}), 0.9379 [0.9373--0.9384] (\textit{Burt-2020}), 0.9481 [0.9479--0.9482] (\textit{Moran}) (mean [2.5--97.5\% CI] across all atlases and resolutions, derived from inverse \emph{r}-to-\emph{z}-transformed distributions).}
+Although parameterized data nulls seem relatively robust to this issue, researchers should be explicit about how they are handling the medial wall when constructing the required distance matrices in their own analyses.
 
 \section*{DISCUSSION}
 
-In the present report we systematically assess the effect of ten null frameworks on statistical inference in two prototypical analyses.
-Within the spatially-constrained null frameworks we observe limited differences in performance.
-Although in some cases there appears to be a primary distinction between the spatial permutation and parameterized families---with the former tending to be more conservative and the latter more liberal---this strongly depends on research context and question.
-Encouragingly, we find minimal impact of parcellation and parcel resolution on these null frameworks.
-Across all of our analyses, however, we find that spatially-naive nulls models consistently yield both unrealistically liberal statistical estimates and a strong dependence on parcel resolution, confirming previous reports that these methods are unsuitable for most neuroimaging analyses \citep{alexanderbloch2018neuroimage, burt2020neuroimage}.
+In the present report we systematically assess the performance of ten null frameworks on statistical inference in four analyses.
+\nimg{We first examine their efficacy in the context of two comprehensive simulation analyses, testing the accuracy of the statistical estimates and false positive rates generated by each model.
+Next, we compare the performance of the null models at replicating previously published analyses of two empirical datasets.
+We close with an investigation of how implementation choices within each null framework may influence their behavior.}
 
-From the perspective of a researcher, the first choice when applying one of these frameworks is which family to choose from (Tables~\ref{table-null-models} and \ref{supp-table-null-drawbacks} provide summaries of their relative differences and limitations).
-On the one hand, the spatial permutation null models are computationally-efficient.
-Since they are not conditioned on the data itself---simply the geometry of the cortical surface---the same null can be applied to any dataset defined on the same cortical mesh.
-On the other hand, nulls generated by the parameterized models (with the exception of the Moran method), are dependent on the data itself, dramatically increasing the computational cost for multivariate analyses.
-However, the benefit of parameterized nulls is that they can be used for all data geometries.
-That is, they can be applied to both volumetric and surface data, and the models are consistent regardless of whether the data are defined at the vertex-, voxel-, or parcel-level \citep{burt2020neuroimage}.
+\nimg{Across both simulated and empirical datasets we find that spatially-naive null models consistently yield inflated error rates, unrealistically liberal statistical estimates, and a strong dependence on parcellation resolution, confirming previous reports that such methods are unsuitable for use in neuroimaging \citep{alexanderbloch2018neuroimage, burt2020neuroimage}.
+In these same analyses we demonstrate that spatially-constrained null models yield more realistic, conservative statistical estimates.
+However, we also show that even these frameworks suffer from inflated false positives---with error rates as high as 46\% in realistic simulations---and that there is considerable variability in their performance.
+Altogether, these findings suggest that while spatially-constrained null models are the current state-of-the-art, there are significant improvements to be made in this space.
+The present report provides a harmonised framework against which researchers can benchmark and compare future developments.}
 
-Implementation differences within null families entail additional methodological choices that can ultimately lead to variability in statistical inference (Table~\ref{table-null-models}).
-Within the spatial permutation nulls, differences are primarily driven by handling of the medial wall (i.e., \textit{V{\'a}zquez-Rodr{\'i}guez}, \textit{V{\'a}{\v{s}}a}, \textit{Hungarian}) and whether to project parcellated data to the vertex-level (i.e., \textit{Baum}, \textit{Cornblath}).
-The parameterized nulls mostly vary in how they implement the data-generating process.
-More specifically, these frameworks differ in their underlying assumptions of the nature of the spatial autocorrelation itself and how it is estimated in the first place.
+\nimg{Our analyses highlight a consistent distinction in the performance of the spatially-constrained null models: in general, we find that the spatial permutation models tend to yield more conservative statistical estimates and lower error rates than the parameterized data models.
+Importantly, this variability seems to depend on research context.
+Although analyses of simulated data show a reliable and marked difference between model families (Fig.~\ref{figure-simulation-results}), this delineation becomes less consistent when examining empirical results.
+That is, we observe lower variability between nulls when examining brain map correspondences in the NeuroSynth dataset (Fig.~\ref{figure-neurosynth-results}) than when exploring partition specificity in the HCP dataset (Figs.~\ref{figure-hcp-results} and \ref{figure-network-results}).
+Moreover, unlike results from both the simulation and HCP analyses, differences in null model behavior in the NeuroSynth analysis do not break down along the lines of model family.}
+
+\nimg{What is driving these differences between null model families?
+One possible explanation is the degree of spatial autocorrelation.
+Results from our simulation analyses (Figs.~\ref{figure-simulation-results} and \ref{figure-moran-results}) highlight that the amount or degree of spatial autocorrelation present in the data has a strong influence on how the null models perform: at lower levels the frameworks all perform quite comparably, with differences emerging only at higher levels.
+Although this does not explain the variability between model families in-and-of itself, differences in empirical spatial autocorrelation may be partially responsible for the seemingly contradictory results in the NeuroSynth and HCP datasets.}
+
+\nimg{Another possibility is that the null model families embody different hypotheses.
+On the one hand, spatial permutation models assume that the spatial orientation of two brain maps is responsible for any observed relationships between them, and test this by altering the alignment of the brain maps via random angular rotations.
+The parameterized data models instead operate under the hypothesis that spatial autocorrelation is driving observed relationships between brain maps, and so test this by generating null maps that aim to match the degree of spatial autocorrelation present in the original data.
+Although this is a subtle difference---spatial orientation versus spatial autocorrelation---it can have notable consequences.
+For example, we find that null maps generated by spatial permutation models tend to more accurately match the spatial autocorrelation of the original data than those created with the parameterized data models, despite not explicitly optimizing this factor (Fig.~\ref{figure-moran-results}).
+This difference may be especially important in explaining variability of model performance in the presence of spatial non-stationarities commonly found in empirical data.}
+
+\nimg{The assumption of stationarity underlies all of the spatial null models examined.
+That is, they assume that any spatial autocorrelation present in the data is consistent and uniform throughout; in a system as complex as the brain, this is unlikely to be true.
+However, although spatial stationarity is an explicit and strict assumption of the parameterized data models, it is a much looser assumption for the spatial permutation models.
+These rotation-based models should, in theory, retain non-stationarities present in the original data, perhaps yielding more realistic null distributions (though this will vary based on the exact method employed and whether data are discarded due to the medial wall).
+Future work examining and developing spatial null models should aim to explicitly address the concept of spatial non-stationarities and examine how their presence might impact model performance.
+Note that one existing method---wavelet-based phase randomization \citep{breakspear2003construction, breakspear2004spatiotemporal}---may be well-suited to address this; however, this method has not yet been extended to surface data and so we were unable to examine it in the current report.}
+
+\nimg{Beyond the impact of spatial autocorrelation and spatial non-statitionarities,} implementation differences within null families entail additional methodological choices that may  explain additional variability in the observed results.
+Within the spatial permutation nulls, implementation differences are primarily driven by \nimg{whether the methods are performing a ``perfect'' permutation of the data (i.e., \textit{V{\'a}{\v{s}}a}, \textit{Hungarian}) or using a more flexible re-assignment (i.e., \textit{V{\'a}zquez-Rodr{\'i}guez}, \textit{Baum}, \textit{Cornblath}).
+Using the so-called perfect permutation methods comes at the expense of the relative spatial orientation of the input data and tends to yield slightly more liberal statistical estimates (Figs.~\ref{figure-simulation-results} and \ref{figure-network-results}).}
+The parameterized nulls mostly vary in how they implement the data-generating process, including their assumptions about the nature of spatial autocorrelation and how it is estimated in the original data.
 Our results clearly show that these implementation differences have an observable effect on generated statistical estimates, but more research is needed to better understand how differences in performance arise from specific methodological choices.
 
-More broadly, we find that null framework performance depends on the research question itself, such that differences between frameworks are more pronounced for some types of analyses than others.
-In particular, we see greater variability between nulls when examining partition specificity (Fig.~\ref{figure-hcp-results}) as compared to brain map correspondence (Fig~\ref{figure-neurosynth-results}).
-Within partition specificity analyses we observe increased variability between frameworks when comparing intrinsic resting state networks than when examining cytoarchitectonic classes (Fig~\ref{figure-network-results}).
-Indeed, the main limitation of the present report is that it is focused on single instances of two prototypical analyses.
-That is, we sample only a small space of the application of these null frameworks and do not exhaustively assess their performance in all conceivable research contexts.
-
-Interestingly, we find that parcellation and parcel resolution seem to have minimal effect on null framework performance.
-How brain regions are defined and ultimately represented in analyses is becoming an increasingly important choice in neuroimaging \citep{eickhoff2018natrevneuro}.
-Recent work has highlighted the role of brain region definition in analyses including test-retest reliability \citep{arslan2018neuroimage}, structure-function coupling \citep{messe2020hbm, vazquezrodriguez2019pnas}, individual fingerprinting \citep{finn2015natneuro}, modelling of brain dynamics \citep{proix2016neuroimage}, and prediction of behavior and disease \citep{kong2019spatial, dadi2020neuroimage}.
-Although the choice of parcellation is clearly an important methodological consideration, our results suggest that it does not strongly influence spatially-constrained null models.
-This ostensible ``parcellation invariance'' is encouraging, and will hopefully support broader adoption of these models in future studies.
+\nimg{Encouragingly, our results show negligible differences in spatially-constrained null model performance between ``dense'' (i.e., vertex-wise) and parcellated data, and furthermore suggest a minimal impact of parcellation and parcellation resolution (Figs.~\ref{figure-simulation-results}, \ref{figure-moran-results}, and \ref{supp-figure-simulation-parcellations}).}
+How brain regions are defined and ultimately represented in analyses is an important choice in neuroimaging \citep{eickhoff2018natrevneuro}, as recent work has highlighted the role of brain region definition in analyses including test-retest reliability \citep{arslan2018neuroimage}, structure-function coupling \citep{messe2020hbm, vazquezrodriguez2019pnas}, individual fingerprinting \citep{finn2015natneuro}, modelling of brain dynamics \citep{proix2016neuroimage}, and prediction of behavior and disease \citep{kong2019spatial, dadi2020neuroimage}.
+Although choice of parcellation is clearly an important methodological consideration, our results suggest that it does not strongly influence spatially-constrained null models.
+This ``parcellation invariance'' will hopefully support broader adoption of these null models in future studies.
 
 More generally, this investigation builds on increasing efforts in the neuroimaging literature to benchmark the effects of methodological choices.
-Recently, the broad impacts of these choices has been demonstrated in structural MRI \citep{bhagwat2020biorxiv, kharabian2020influence}, task fMRI \citep{carp2012plurality, botviniknesser2020nature}, resting state fMRI \citep{parkes2018neuroimage, ciric2017neuroimage}, and diffusion MRI \citep{oldham2020biorxiv, maier2017natcomm, schilling2019neuroimage} research.
+Recently, the broad impacts of these choices has been demonstrated in research using structural MRI \citep{bhagwat2020biorxiv, kharabian2020influence}, task fMRI \citep{carp2012plurality, botviniknesser2020nature}, resting state fMRI \citep{parkes2018neuroimage, ciric2017neuroimage}, and diffusion MRI \citep{oldham2020biorxiv, maier2017natcomm, schilling2019neuroimage}.
 Concomitant with an increasing awareness of the importance of these choices is a developing trend to share and analyze ``raw'' or un-thresholded brain maps \citep{gorgolewski2015neurovault, witt2020biorxiv}.
 Convergence of these trends has naturally opened new research questions that revolve around comparing such brain maps.
 Methods that appropriately consider the inherent spatial structure of the brain are thus going to be critical to ensuring valid inferences can be drawn from these lines of inquiry.
 The present study is a first step towards better understanding the variable implementation of these statistical methods and ultimately standardizing or synthesizing their application.
 
-Collectively, the present report comprehensively examines ten recently-developed null models for comparing brain maps.
-We find relatively consistent performance among the null models that account for spatial autocorrelation; however, we note some differences between nulls that depend on analytic framework.
-Our results highlight the need to closely consider the variability across implementation of these null methods and to more explicitly compare their performance across a wider range of research contexts.
+\nimg{Finally, to help guide researchers in choosing an appropriate null model in their own work, we end with a set of nine important considerations:}
+
+\begin{enumerate}[before=\color{blue}]
+    \item Spatially-naive null models---both parametric and non-parametric---are inappropriate for significance testing of neuroimaging brain maps.
+    When applied to spatially-autocorrelated brain maps typical of most neuroimaging data these models approach a false positive rate of >75\%.
+    Use of spatially-naive null models should be actively discouraged throughout the field.
+    \item Parameterized data models are necessary when working with voxel-wise, subcortical, cerebellar, and region-of-interest data, as spatial permutation null models are only viable for data that can be projected to a spherical representation of the cortical surface.
+    Note that within the parameterized data models some may be less feasible for use with high-resolution datasets (e.g., the Moran method relies on an eigendecomposition, which can be computationally prohibitive in some cases).
+    \item Spatial permutation frameworks tend to have lower overall error rates than parameterized data models; however, this difference is less pronounced for data with low levels of spatial autocorrelation.
+    Appropriate choice of null framework will thus depend on research context.
+    \item Parcellation and parcellation resolution appear to have negligible impact on the performance of spatially-constrained null models and limited impact on statistical inference.
+    Researchers should use whatever parcellation and resolution best suits their data and research questions.
+    \item Parameterized data models have a greater computational cost than spatial permutation models (Fig.~\ref{supp-figure-runtime-results}).
+    When working with parcellated data this difference is less pronounced and the computational cost of the two families becomes more comparable (though does not equalize).
+    \item Spatial permutation null models are only viable for data that can be projected to a spherical representation of the cortical surface.
+    This precludes use of these null models with voxel-wise (unless a volume-to-surface projection is used), subcortical, cerebellar, and region-of-interest data; in these cases parameterized data models should be used.
+    Note that within the parameterized data models some may be less feasible for use with ultra high-resolution datasets (e.g., the \textit{Moran} method relies on an eigendecomposition, which can be computationally prohibitive in some cases.)
+    \item Avoid relying on default hyperparameter choices when using parameterized data models (i.e., \textit{Burt-2020}).
+    Selecting parameters to ensure that the null models are providing a good fit to the data can reduce false positive rates by nearly half (Fig.~\ref{supp-figure-burt-parameters}).
+    \item Spatial null models can be applied to many analysis procedures, including ones that are not often statistically assessed---such as the partition specificity analysis presented in this article.
+    Simply reporting the average values of a given feature within a set of partitions can misrepresent which partitions are truly over- or under-expressing the feature.
+    We find that in the presence of spatial autocorrelation these descriptive estimates can be misleading, and so recommend using spatial null models to statistically assess these values.
+    \item When retaining the exact distribution of the original brain map is important, such as when testing network-based statistics like degree, the \textit{V{\'a}{\v{s}}a} or \textit{Hungarian} spatial permutation models should preferentially be used.
+    These models attempt to perfectly preserve the distribution of the original data and are more well-suited to these types of hypotheses.
+    \item Null models converge quickly (i.e., with relatively few permutations / rotations / surrogates; Fig.~\ref{supp-figure-nnulls-results}), reaching stable statistical estimates after approximately 100--500 nulls.
+    Researchers can use this information to balance accuracy and computational feasibility when selecting the number of nulls to use in their analysis.
+\end{enumerate}
+
+\section*{\nimg{CONCLUSIONS}}
+
+\nimg{The present report comprehensively examines ten null models for comparing brain maps in neuroimaging research.
+We find dramatically improved performance and reduced error rates in null models that account for spatial autocorrelation when compared with spatially-naive models; however, we note that potentially meaningful differences between spatially-constrained nulls are present across all analyses.
+Our results highlight the need to closely consider the variability across implementation of these null methods and to more explicitly compare their performance across a wider range of research contexts.}
 
 \subsection*{ACKNOWLEDGEMENTS}
 
-We thank Laura Su{\'a}rez, Golia Shafiei, Justine Hansen, Vincent Bazinet, Bertha V{\'a}zquez-Rodr{\'i}guez, and Elizabeth DuPre for their comments and suggestions. This research was undertaken thanks in part to funding from the Canada First Research Excellence Fund, awarded to McGill University for the Healthy Brains for Healthy Lives initiative. RDM acknowledges support from the Fonds du Recherche Qu{\'e}bec - Nature et Technologies. BM acknowledges support from the Natural Sciences and Engineering Research Council of Canada (NSERC Discovery Grant RGPIN \#017-04265) and from the Canada Research Chairs Program.
+We thank Laura Su{\'a}rez, Golia Shafiei, Justine Hansen, Vincent Bazinet, Bertha V{\'a}zquez-Rodr{\'i}guez, Elizabeth DuPre, and Joshua Burt for their comments and suggestions.
+This research was undertaken thanks in part to funding from the Canada First Research Excellence Fund, awarded to McGill University for the Healthy Brains for Healthy Lives initiative.
+This work was supported in part by funding provided by Brain Canada, in partnership with
+Health Canada, for the Canadian Open Neuroscience Platform initiative.
+RDM acknowledges support from the Fonds du Recherche Qu{\'e}bec - Nature et Technologies and the Canadian Open Neuroscience Platform.
+BM acknowledges support from the Natural Sciences and Engineering Research Council of Canada (NSERC Discovery Grant RGPIN \#017-04265) and from the Canada Research Chairs Program.
 
 \bibliography{refs}
 
@@ -575,12 +776,13 @@ We thank Laura Su{\'a}rez, Golia Shafiei, Justine Hansen, Vincent Bazinet, Berth
 \beginsupplement
 
 \begin{table*}[htp]
+  \begin{minipage}[c][\textheight][c]{\textwidth}
     \caption{
       \textbf{List of terms used in NeuroSynth analyses | }
       Terms that overlapped between NeuroSynth \citep{yarkoni2011natmethods} and Cognitive Atlas \citep{poldrack2011frontiers} corpuses used in the reported analyses.
       For a machine-readable format please refer to \url{https://github.com/netneurolab/markello_spatialnulls}.
     }
-    \label{supp-table-ns-terms}
+    \label{-ns-terms}
     \setlength{\tabcolsep}{4.5pt}
     \renewcommand{\arraystretch}{1.1}
     \begin{center}
@@ -612,13 +814,15 @@ We thank Laura Su{\'a}rez, Golia Shafiei, Justine Hansen, Vincent Bazinet, Berth
         distraction             & inhibition         & multisensory           & selective attention    &                        \\
       \end{tabular}
     \end{center}
+  \end{minipage}
 \end{table*}
 
 \begin{table*}[htp]
+  \begin{minipage}[c][\textheight][c]{\textwidth}
     \caption{
       \textbf{Null framework limitations | }
       Overview of some of the drawbacks of each of the null frameworks described in the current report.
-      Each of the families also suffer from drawbacks impacting all constituent null frameworks (i.e., spatial permutation models can only handle surface data; parameterized models tend to be more computationally complex); refer to \textit{Discussion} for more information.
+      Each of the families also suffer from drawbacks impacting all constituent null frameworks (i.e., spatial permutation models can only handle surface data, parameterized models tend to be more computationally complex); refer to \textit{Discussion} for more information.
       \vspace{-0.5\baselineskip}
     }
     \label{supp-table-null-drawbacks}
@@ -634,45 +838,165 @@ We thank Laura Su{\'a}rez, Golia Shafiei, Justine Hansen, Vincent Bazinet, Berth
         \multicolumn{2}{c}{\textbf{Spatial permutation models}}                                                                                                                        \\ \toprule
         \emph{Method}             & \emph{Drawbacks}                                                                                                                                   \\ \midrule
         V{\'a}zquez-Rodr{\'i}guez & Allows duplicate parcel assignments                                                                                                                \\
-        V{\'a}{\v{s}}a            & Generates sub-optimal assignments with respect to global cost                                                                                      \\
-        Hungarian                 & Undesirable, high-cost (i.e., distant) assignments can be made to optimize global cost; time consuming for high-resolution atlases                 \\
         Baum                      & Projection to vertices involves upsampling; allows duplicate parcel assignments                                                                    \\
-        Cornblath                 & Projection to vertices involves upsampling; null data will not match original due to re-averaging                                                  \\ \toprule
+        Cornblath                 & Projection to vertices involves upsampling; null data will not match original due to re-averaging                                                  \\
+        V{\'a}{\v{s}}a            & Generates sub-optimal assignments with respect to global cost                                                                                      \\
+        Hungarian                 & Undesirable, high-cost (i.e., distant) assignments can be made to optimize global cost                                                             \\\toprule
         \multicolumn{2}{c}{\textbf{Parameterized data models}}                                                                                                                         \\ \toprule
         \emph{Method}             & \emph{Drawbacks}                                                                                                                                   \\ \midrule
-        Burt-2018                & Assumes exponential distance model provides accurate estimation of $\hat{\rho}$ and $\hat{d_{0}}$ from data                                        \\
-        Burt-2020                & Surrogate data can be unbalanced between hemispheres; variogram models may not properly model some spatial distributions                           \\
+        Burt-2018                 & Assumes exponential distance model provides accurate estimation of $\hat{\rho}$ and $\hat{d_{0}}$ from data                                        \\
+        Burt-2020                 & Variogram models may not properly model some spatial distributions                           \\
         Moran                     & Dependent on provided weight matrix, $\mathbf{W}$, which varies based on neighborhood size; tends to yield highly auto-correlated surrogates       \\
       \end{tabular}
     \end{center}
+  \end{minipage}
 \end{table*}
 
+\begin{table*}
+  \begin{minipage}[c][\textheight][c]{\textwidth}
+    \caption{
+      \nimg{\textbf{AUC of null model false positive rates | }
+      The AUC (area under the curve) for the false positive rates of each null model as a function of spatial autocorrelation.
+      Values were calculated using the trapezoidal rule with data presented in Fig.~\ref{figure-simulation-results}e and are normalized such that a false positive rate of 100\% across all levels of spatial autocorrelation would be equal to 1.
+      Lower values indicate more nominal error rates; the lowest value in each column is highlighted in bold.
+      Note that the so-called \textit{V{\'a}zquez-Rodr{\'i}guez} method is identical to the framework proposed by \citet{alexanderbloch2018neuroimage} when used at the fsaverage5 resolution; we retain the former name for consistency with the parcellated results.}
+    }
+    \label{supp-table-sim-auc}
+    \setlength{\tabcolsep}{7pt}
+    \renewcommand{\arraystretch}{1.25}
+    \begin{center}
+      \begin{tabular}{l r r r}
+                                                                                       \toprule
+                       & \textbf{fsaverage5} & \textbf{Cammoun} & \textbf{Schaefer} \\ \toprule
+        Naive parametric          &          0.653 &          0.507 &         0.503 \\
+        Naive non-parametric      &          0.646 &          0.506 &         0.502 \\
+        V{\'a}zquez-Rodr{\'i}guez & \textbf{0.073} &          0.071 &         0.078 \\
+        Baum                      &            --- &          0.065 &         0.071 \\
+        Cornblath                 &            --- & \textbf{0.046} & \textbf{0.055}\\
+        V{\'a}{\v{s}}a            &            --- &          0.099 &         0.092 \\
+        Hungarian                 &            --- &          0.084 &         0.090 \\
+        Burt-2018                 &          0.256 &          0.166 &         0.151 \\
+        Burt-2020                 &          0.131 &          0.110 &         0.129 \\
+        Moran                     &          0.106 &          0.090 &         0.096 \\ \bottomrule
+      \end{tabular}
+    \end{center}
+  \end{minipage}
+\end{table*}
 
 \begin{figure*}[htp]
   \begin{center}
-    \centerline{\includegraphics[width=\textwidth]{parcel-centroids.png}}
+    \centerline{\includegraphics[width=\textwidth]{runtime_results.png}}
     \caption{
-      \textbf{Variability in parcel centroid definition |}
-      Reproduction of results shown in Fig.~\ref{figure-implementation-differences}a for all resolutions of the (a) Cammoun and (b) Schaefer atlases.
-      Black lines delineate different null frameworks (\textit{V{\'a}zquez-Rodr{\'i}guez}, \textit{V{\'a}{\v{s}}a}, \textit{Hungarian} from top-to-bottom) and cells within each section of the heatmap represent different parcel centroid definition methods (\textit{surface}, \textit{average}, \textit{geodesic} from top-to-bottom).
-      Refer to \textit{Methods and Materials: Null model implementation variability} for more information.
+      \nimg{\textbf{Computational runtime of null frameworks |}
+      The computation time of each null framework for the fsaverage5-resolution data (green) and 1,000-parcel Cammoun (pink) and Schaefer (grey) atlases.
+      Each null framework was run five times on a single simulated brain map ($\alpha = 2.0$) and used to generate 1,000 null maps per run; repeats are plotted as separate dots.
+      (a) The computation times of the null frameworks when run with ``no caching'', which includes the time required to both generate 1,000 null maps and any relevant intermediate data, such as permutations (non-parametric), spatial rotations (\textit{V{\'a}zquez-Rodr{\'i}guez}, \textit{V{\'a}{\v{s}}a}, \textit{Hungarian}, \textit{Baum}, \textit{Cornblath}), and geodesic distance matrices (\textit{Burt-2018}, \textit{Burt-2020}, \textit{Moran}), and are limited to one CPU / one thread.
+      (b) The computation time of each null framework when using cached versions of intermediate data (i.e., permutations, spatial rotations, and geodesic distance matrices).
+      Note the decrease in computation time from (a) and, e.g., the equalizing of most of the spatial permutation null models.
+      Results are shown for the 1,000-parcel resolution of the Cammoun and Schaefer atlases.}
     }
-    \label{supp-figure-parcel-centroids}
+    \label{supp-figure-runtime-results}
   \end{center}
 \end{figure*}
 
 \begin{figure*}[htp]
   \begin{center}
-    \centerline{\includegraphics[width=\textwidth]{naive-nulls.png}}
+    \centerline{\includegraphics[width=\textwidth]{burt2020_parameter_results.png}}
     \caption{
-      \textbf{Naive null models |}
-      (a) Results of the spatially-naive null models applied to the NeuroSynth analyses described in \textit{Results: Testing correspondence between brain maps}; refer to Fig.~\ref{figure-neurosynth-results} for description of plots.
-      Note the different scale of the y-axis as compared to Fig.~\ref{figure-neurosynth-results}d.
-      (b) Results of the spatially-naive null models applied to the T1w/T2w analyses described in \textit{Results: Testing partition specificity}; refer to Fig.~\ref{figure-network-results} for description of heatmaps.
-      Color scale for \textit{parametric} nulls ranges from -1 to 1 and represents the average T1w/T2w ratio in each network.
-      Color scale for \textit{non-parametric} nulls ranges from -7.5 to 7.5 and represents the z-scored T1w/T2w ratio in each network.
+      \nimg{\textbf{Hyperparameter selection impacts \textit{Burt-2020} model performance |}
+      False positive rates of the \textit{Burt-2020} null framework when using optimized (a) versus default (b) settings for the \texttt{knn} hyperparameter in the BrainSMASH software.
+      Here, ``optimized'' indicates setting the \texttt{knn} parameter equal to the number of vertices in the input data (9,354 and 9,361 for the left and right hemispheres of the fsaverage5 surface; the default setting is 1,000).
+      Optimality was determined by visually evaluating the fit of the generated surrogates as suggested by the authors of the software.
+      Note that all other null framework results are identical between the two figure panels.}
     }
-    \label{supp-figure-naive-nulls}
+    \label{supp-figure-burt-parameters}
+  \end{center}
+\end{figure*}
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{nnulls_results.png}}
+    \caption{
+      \nimg{\textbf{Null models converge rapidly as a function of null distribution size |}
+      Difference in \emph{p}-values for each of the null frameworks as a function of the size of the null distribution used to calculate them.
+      Each null framework was used to calculate a ``baseline'' \emph{p}-value, derived from a distribution of 10,000 null maps ($p_{10,000}$).
+      Subsamples of size \emph{n} (where $n \in \{100, 500, 1000, 5000\}$) were drawn from this distribution 1,000 times, and the resulting change in \emph{p}-value was calculated as $| p_{n} - p_{10,000} |$.
+      Results are shown for the fsaverage5 surface (a) and the 1,000-parcel Cammoun (b), and 1,000-parcel Schaefer (c) atlases.
+      Colored lines and shaded regions on each plot represent the mean and 95\% confidence interval.}
+    }
+    \label{supp-figure-nnulls-results}
+  \end{center}
+\end{figure*}
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{simulation_corrs.png}}
+    \caption{
+      \nimg{\textbf{Parcellating simulated data modifies correlation structure |}
+      (a) Correlations between pairs of brain maps for all simulations for the vertex (fsaverage5) data---experimentally restricted to the 0.145-0.155 range---and parcellated data across all levels of spatial autocorrelation.
+      Note that parcellating the data increases the range of correlations.
+      (b) Average null model performance for parcellated simulations across all seven levels of spatial autocorrelation, restricting analyses to those simulations where the correlation between brain map pairs was in the range 0.125--0.175.
+      Colored lines and shaded regions on each plot represent the mean and 95\% confidence interval.
+      The Cammoun and Schaefer atlas results are shown for the highest resolution (1,000 parcels) only.
+      The dashed black line corresponds to \emph{p} = 0.05 (where values beneath the line indicate \emph{p} > 0.05).
+      Note that the spatially-naive parametric results are not depicted as they are largely indistinguishable from \emph{p} = 0 and approach infinity on the provided scale.}
+    }
+    \label{supp-figure-simulation-correlations}
+  \end{center}
+\end{figure*}
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{simulation_parcellated_results.png}}
+    \caption{
+      \nimg{\textbf{Data resolution does not impact false positive rate of null frameworks |}
+      False positive rates for the Cammoun (a) and Schaefer (b) atlases as a function of parcellation resolution for the different null frameworks across all levels of spatial autocorrelation.
+      The dashed black line corresponds to the expected FPR of five percent.
+      Note that the spatially-naive null models (\textit{parametric} and \textit{non-parametric}) are almost completely overlapping on these plots.}
+    }
+    \label{supp-figure-simulation-parcellations}
+  \end{center}
+\end{figure*}
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{network_spin_baum_cornblath_results.png}}
+    \caption{
+      \nimg{\textbf{Partition specificity results are not influenced by medial wall rotations |}
+      Examination of how constraining the \textit{Baum} (a) and \textit{Cornblath} (b) null methods impacts results of the partition specificity analysis.
+      The analysis procedure was modified such that we removed spatial rotations wherein a given partition had more than a set percent (X\%) of all its constituent parcels discarded due to rotation of the medial wall.
+      Each cell in the heatmap represents the T1w/T2w z-score for a given network (x-axis) and atlas / resolution (y-axis).
+      Black outlines around a cell represent network z-scores that are significant at the $p \leq 0.05$ level.
+      Refer to Fig.~\ref{figure-network-results} for a more detailed overview of the heatmaps.
+      Note that the 100\% threshold heatmaps are identical to those in Fig.~\ref{figure-network-results}.}
+    }
+    \label{supp-figure-baum-cornblath-networks}
+  \end{center}
+\end{figure*}
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{hcp_null_examples.png}}
+    \caption{
+      \nimg{\textbf{Null distribution shape impacts significance testing |}
+      Null distributions of the T1w/T2w ratio for the visual (a) and ventral attention (b) networks from the partition specificity analysis (\textit{Results: Testing partition specificity}), shown here for the 1,000-parcel Cammoun atlas.
+      Dashed lines denote the empirical T1w/T2w value for the network, and an asterisk denotes that the null model yielded a significant test for over-/under-expression of T1w/T2w in the network.
+      Note the similarity in shape of the null distributions for the \textit{V{\'a}zquez-Rodr{\'i}guez}, \textit{Baum}, and \textit{Cornblath} methods and for the \textit{V{\'a}{\v{s}}a} and \textit{Hungarian} methods.}
+    }
+    \label{supp-figure-hcp-nulls-example}
+  \end{center}
+\end{figure*}
+
+\begin{figure*}[htp]
+  \begin{center}
+    \centerline{\includegraphics[width=\textwidth]{parcel_centroids.png}}
+    \caption{
+      \textbf{Variability in parcel centroid definition |}
+      Reproduction of results shown in Fig.~\ref{figure-implementation-differences}a for all resolutions of the (a) Cammoun and (b) Schaefer atlases.
+      Cells within each section of the heatmap represent different parcel centroid definition methods (\textit{surface}, \textit{average}, \textit{geodesic} from top-to-bottom).
+      Refer to \textit{Methods: Null model implementation variability} and Fig.~\ref{figure-implementation-differences} for more information
+    }
+    \label{supp-figure-parcel-centroids}
   \end{center}
 \end{figure*}
 
