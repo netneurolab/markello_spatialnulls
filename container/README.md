@@ -7,13 +7,15 @@ You can download the Singularity image [on OSF](https://osf.io/za7fn/).
 - [**`gen_simg.sh`**](./gen_simg.sh): This is a helper script designed to create the Singularity image.
 - [**`Singularity`**](./Singularity): The Singularity recipe generated from `gen_simg.sh` and used to build the Singularity image.
 
-Once you've downloaded the Singularity container you _should_ (famous last word) be able to reproduce all analyses with the following commands:
+Once you've downloaded the Singularity container you _should_ (famous last words) be able to reproduce all analyses with the following command:
 
 ```bash
-singularity shell --cleanenv                    \
-                  --home ${PWD}                 \
-                  -s "/neurodocker/startup.sh"  \
-                  markello_spatialnulls.simg
-make all
+singularity exec --cleanenv                             \
+                 --home ${PWD}                          \
+                 container/markello_spatialnulls.simg   \
+                 /neurodocker/startup.sh                \
+                 make all
 ```
-/
+
+(Note: we don't recommend using `make all` to run the analyses because this will take an _incredibly_ long time with default settings.
+Please refer to [our walkthrough](https://netneurolab.github.io/markello_spatialnulls) for guidelines and suggestions on reproducing our analyses!)
