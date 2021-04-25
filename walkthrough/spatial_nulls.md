@@ -90,8 +90,8 @@ nulls = brain[spins]
 from netneurotools import datasets, freesurfer
 
 annot = datasets.fetch_cammoun2012('fsaverage5')['scale500']
-spins = freesurer.spin_parcels(lhannot=annot.lh, rhannot=annot.rh,
-                               version='fsaverage5', seed=1234)
+spins = freesurfer.spin_parcels(lhannot=annot.lh, rhannot=annot.rh,
+                                version='fsaverage5', seed=1234)
 nulls = brain[spins]
 nulls[spins == -1] = np.nan
 ```
@@ -106,8 +106,8 @@ nulls[spins == -1] = np.nan
 from netneurotools import datasets, freesurfer
 
 annot = datasets.fetch_cammoun2012('fsaverage5')['scale500']
-nulls = freesurer.spin_data(brain, lhannot=annot.lh, rhannot=annot.rh,
-                            version='fsaverage5', seed=1234)
+nulls = freesurfer.spin_data(brain, lhannot=annot.lh, rhannot=annot.rh,
+                             version='fsaverage5', seed=1234)
 ```
 
 ### Váša ([Source code](https://github.com/netneurolab/netneurotools/blob/a1beaed2ced9c5236f9635041e30aa1f037023eb/netneurotools/stats.py#L542))
